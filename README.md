@@ -8,6 +8,8 @@ Discovery documented; interactive coach prototype available. No production app, 
 
 ## Prototype
 
+Open `prototypes/athlete.html` for the athlete demo: category selection, latest official result, PB, progress chart, attempt history and event/all-time rankings. It uses synthetic published events, includes an empty category, and is independent of the coach demo.
+
 Open `prototypes/index.html` in a browser. Demonstration data only; entries disappear on reload. Current coach flow: create test, select/add athlete, enter attempts, review and publish a local leaderboard.
 
 Input masks support minutes/seconds/hundredths and optional hours. Errors identify the invalid segment and participant. Hours 00–23 is a proposed prototype limit, not an approved business rule.
@@ -31,7 +33,7 @@ Input masks support minutes/seconds/hundredths and optional hours. Errors identi
 
 ## Checks
 
-Run `node tests/time-validation.test.js`. These checks cover parsing boundaries only; browser interaction and mobile layout still require validation.
+Run `node tests/time-validation.test.js` and `node tests/athlete-analytics.test.js`. Athlete checks use the same analytics module as the UI and cover publication, best attempts, ties, filtering and empty history. These checks cover parsing boundaries only; browser interaction and mobile layout still require validation.
 
 ## Repository structure
 

@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {history,leaderboard,official,format}=require('../prototypes/athlete-data.js');
+const h=history('swim400','a1');
+assert.equal(h.length,4,'Draft events must not enter history');
+assert.equal(h.at(-1).time,38145,'Choose best valid attempt');
+assert.equal(official({attempts:[{time:1,status:'DSQ'},{time:null,status:'DNF'}]}),null);
+assert.deepEqual(leaderboard('swim400','event','all').map(r=>r.rank),[1,2,2]);
+assert.equal(leaderboard('swim400','alltime','all').filter(r=>r.athlete==='a1').length,1);
+assert.equal(leaderboard('swim400','alltime','F').length,1);
+assert.equal(history('swim1500','a1').length,0);
+assert.equal(format(360000+6234),'1:01:02.34');
+console.log('8 athlete analytics checks passed');
