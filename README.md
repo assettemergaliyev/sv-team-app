@@ -4,7 +4,13 @@ Mobile-first club performance platform for swimming, running and triathlon.
 
 ## Current status
 
-Discovery documented; interactive coach prototype available. No production app, database, authentication or historical import yet.
+Next.js application now includes email/password login and a coach results flow connected to the separate Supabase test project. Database schema, RLS and audited commands are applied; first administrator configured. Build, type checks and domain tests passed. Browser QA is environment-blocked and real authenticated UI flow is not yet verified. No production hosting or historical import yet. See [application checkpoint](docs/app-checkpoint.md) and [database implementation](supabase/README.md).
+
+## Run the application
+
+Use Node.js 24. Run `npm ci`, copy `.env.example` to `.env.local`, and set the Supabase project URL and publishable key. Then run `npm run dev` and open http://localhost:3000. Use your existing club account and application password. Real credentials and `.env.local` must stay out of GitHub.
+
+`npm run typecheck`, `npm test`, and `npm run build` verify code/build/domain logic. Browser tests: `npx playwright install chromium` then `npm run test:browser`. Browser test uses synthetic mocked Auth/API responses; it does not log into a real account.
 
 ## Prototype
 
@@ -44,4 +50,4 @@ Run `node tests/time-validation.test.js` and `node tests/athlete-analytics.test.
 `tests/`: current validation checks.
 `.github/`: issue and pull request templates.
 
-Next.js, TypeScript and Supabase were proposed; final stack and hosting remain unconfirmed. No open-source license has been selected.
+Next.js, TypeScript and Supabase are approved. Hosting remains unconfirmed; Vercel is a candidate. No open-source license has been selected.

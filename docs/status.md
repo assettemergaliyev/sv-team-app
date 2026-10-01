@@ -1,5 +1,21 @@
 # Status — 2026-09-30
 
+## Latest checkpoint — 2026-10-02: application integration
+
+Configured first real administrator and SV Team club in the separate test project. Added Next.js application with password login, user-token/RLS data access, athlete/test/group creation, events/sessions/attempts, publication, draft cancellation, event closure/reopening and audited corrections of closed-event results. See app-checkpoint.md for scope and limitations.
+
+Production build, TypeScript and domain tests passed. Browser test exists but was blocked before launch by environment socket restrictions; no verified successful real-user UI flow or mobile screenshot. Hosting and real import remain pending.
+
+## Current checkpoint — 2026-10-01: database foundation
+
+Next.js + TypeScript + Supabase stack and database structure approved. Roles: ADMIN, COACH, ATHLETE; no HEAD_COACH. ADMIN/COACH may correct published results in CLOSED events without reopening, with reason and audit. Vercel remains a hosting candidate.
+
+Created separate Supabase test project sv-team-app-dev (Frankfurt, PostgreSQL 17.11). Applied 21 application tables, tenant/event FKs, read RLS, dense-rank leaderboard and checked audited command API. See ../supabase/README.md for implemented operations and remaining scope. 37 read-access assertions and the command workflow passed against the actual DB; fixtures rolled back. Security advisor clean; informational unused-index notices only.
+
+No real accounts/data seeded; no historical import or UI connection yet. Next: verified initial administrator, Auth/Next.js integration, first persistent UI flow, then audited trial import. New database implementation files are not yet published to the public repository.
+
+The dated sections below are historical checkpoints, not current approval state.
+
 Completed: Discovery v0.1, draft model, coach prototype and athlete results/ranking prototype (synthetic data).
 Athlete prototype: category selection, latest result, PB, progress chart with selectable points, period filter, attempt history, event/all-time rankings, sex filter and empty state. Analytical checks passed; browser QA status recorded separately below.
 Next: source-data audit, confirm stack and permissions, database schema and first persistent end-to-end flow.
