@@ -10,3 +10,6 @@ Validation: node tests/time-validation.test.js passed (7 checks); these tests du
 No real athlete data or credentials are included.
 
 Athlete validation: 8 analytics checks passed. Browser QA was blocked: no installed Chromium; browser download returned an invalid archive. Mobile visual layout and interactions still require verification.
+
+## 2026-10-01 — multi-session coach prototype
+Implemented prototypes/sessions.html with four synthetic sessions over two days, add-session and participant flows, attempt entry, publication, combined leaderboard and event closure. Original coach flow remains available; athlete prototype has not yet been wired to this model. Session analytics scenario checks passed. No persistence or server permissions. Browser visual QA remains unverified.

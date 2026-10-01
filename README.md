@@ -8,6 +8,8 @@ Discovery documented; interactive coach prototype available. No production app, 
 
 ## Prototype
 
+Open `prototypes/sessions.html` for the multi-session coach flow: four sessions over two days, session publication, one overall result per athlete, and closing the event. State is in memory only.
+
 Open `prototypes/athlete.html` for the athlete demo: category selection, latest official result, PB, progress chart, attempt history and event/all-time rankings. It uses synthetic published events, includes an empty category, and is independent of the coach demo.
 
 Open `prototypes/index.html` in a browser. Demonstration data only; entries disappear on reload. Current coach flow: create test, select/add athlete, enter attempts, review and publish a local leaderboard.
