@@ -21,6 +21,7 @@ do $$ begin begin insert into public.session_participants(club_id,event_id,sessi
 do $$ begin begin insert into public.attempts(club_id,session_participant_id,attempt_no,status,time_cs) values ('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000080',4,'FINISHED',null); raise exception 'FAILED: null finished'; exception when check_violation then null; end; end $$;
 do $$ begin begin insert into public.attempts(club_id,session_participant_id,attempt_no,status,time_cs) values ('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000080',4,'DNS',0); raise exception 'FAILED: dns zero'; exception when check_violation then null; end; end $$;
 do $$ begin begin insert into public.athlete_group_memberships(club_id,athlete_id,group_id,valid_from) values ('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000020','10000000-0000-4000-8000-000000000030','2026-06-01'); raise exception 'FAILED: overlap membership'; exception when exclusion_violation then null; end; end $$;
+with chosen as (select id,row_number() over(partition by club_id,session_participant_id order by (status='FINISHED') desc,time_cs asc nulls last,id) n from public.attempts where club_id in ('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000011')) update public.attempts a set is_current=true from chosen c where a.id=c.id and c.n=1;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub": "10000000-0000-4000-8000-000000000003", "role": "authenticated"}',true);
 do $$ begin if not ((select count(*) from public.clubs)=1) then raise exception 'FAILED: athlete own club'; end if; end $$;
@@ -28,7 +29,7 @@ do $$ begin if not ((select count(*) from public.athlete_private)=1) then raise 
 do $$ begin if not ((select count(*) from public.test_sessions)=2) then raise exception 'FAILED: athlete published sessions only'; end if; end $$;
 do $$ begin if not ((select count(*) from public.test_events)=1) then raise exception 'FAILED: draft only event hidden'; end if; end $$;
 do $$ begin if not ((select count(*) from public.event_participants)=3) then raise exception 'FAILED: draft only participant hidden'; end if; end $$;
-do $$ begin if not ((select count(*) from public.attempts)=6) then raise exception 'FAILED: draft attempts hidden'; end if; end $$;
+do $$ begin if not ((select count(*) from public.attempts)=4) then raise exception 'FAILED: draft attempts hidden'; end if; end $$;
 do $$ begin if not ((select count(*) from public.attempt_staff_notes)=0) then raise exception 'FAILED: staff notes hidden'; end if; end $$;
 do $$ begin if not ((select count(*) from public.audit_log)=0) then raise exception 'FAILED: audit hidden'; end if; end $$;
 do $$ begin if not ((select count(*) from public.event_leaderboard)=3) then raise exception 'FAILED: one result per athlete'; end if; end $$;

@@ -452,9 +452,9 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "en": "This record changed. Reload and try the correction again.",
     "kk": "Жазба өзгертілген. Бетті жаңартып, түзетуді қайталаңыз."
   },
-  "Заполни все попытки или отметь DNS, DNF либо DSQ перед публикацией.": {
-    "en": "Complete all attempts or mark DNS, DNF or DSQ before publishing.",
-    "kk": "Жарияламас бұрын барлық талпыныстарды толтырыңыз немесе DNS, DNF, DSQ белгілеңіз."
+  "Внеси время каждому участнику или убери его из сессии перед публикацией.": {
+    "en": "Enter a time for every participant or remove them from the session before publishing.",
+    "kk": "Жарияламас бұрын әр қатысушының уақытын енгізіңіз немесе оны сессиядан алып тастаңыз."
   },
   "Сначала добавь участников и результаты.": {
     "en": "Add participants and results first.",
@@ -515,6 +515,20 @@ export const translations: Record<string, { en: string; kk: string }> = {
   " · Баттерфляй": {
     "en": " · Butterfly",
     "kk": " · Баттерфляй"
-  }
+  },
+"Рейтинг": {"en": "Standings", "kk": "Рейтинг"},
+"Выбери старт для просмотра результатов.": {"en": "Select an event to view results.", "kk": "Нәтижелерді көру үшін стартты таңдаңыз."},
+"Мои результаты": {"en": "My results", "kk": "Менің нәтижелерім"},
+"Старт → сессия → участники и результаты": {"en": "Event → session → participants and results", "kk": "Старт → сессия → қатысушылар мен нәтижелер"},
+"Сессия": {"en": "Session", "kk": "Сессия"},
+"Убрать": {"en": "Remove", "kk": "Алып тастау"},
+"Убрать из сессии": {"en": "Remove from session", "kk": "Сессиядан алып тастау"},
+"Причина удаления участника": {"en": "Reason for removing the participant", "kk": "Қатысушыны алып тастау себебі"},
+"Результат ещё не внесён": {"en": "No time entered yet", "kk": "Уақыт әлі енгізілмеген"},
+"Внести время": {"en": "Enter time", "kk": "Уақыт енгізу"},
+"Сохранить результат": {"en": "Save result", "kk": "Нәтижені сақтау"},
+"Результат уже внесён. Обнови страницу и используй «Изменить».": {"en": "A result already exists. Reload and use Edit.", "kk": "Нәтиже енгізілген. Бетті жаңартып, «Өзгерту» түймесін пайдаланыңыз."},
+"Участник уже убран из сессии. Обнови страницу.": {"en": "The participant is no longer in this session. Reload the page.", "kk": "Қатысушы сессиядан алып тасталған. Бетті жаңартыңыз."},
+"Время должно быть больше нуля.": {"en": "Time must be greater than zero.", "kk": "Уақыт нөлден үлкен болуы керек."}
 };
 export function translate(text: string, locale: Locale) { return locale === "ru" ? text : translations[text]?.[locale] ?? text; }

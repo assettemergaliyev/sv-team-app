@@ -33,3 +33,7 @@ Implemented prototypes/sessions.html with four synthetic sessions over two days,
 ### 2026-10-02 — mobile simplification and languages
 
 Current Next.js portal removes groups from athlete/session workflows, replaces full-width logout with an accessible header icon, hides email, displays role or available name, and supports RU/KK/EN with device-local language persistence. Historical group schema and links are retained. See `docs/app-checkpoint.md` for scope and verification limits.
+
+### 2026-10-02 — one result and separate standings
+
+Current Next.js app now uses one timed result per athlete/session, with editing and audited participant removal. Athlete finish/DNS/DNF selectors removed. Rating is a separate default tab; athlete accounts see published standings and own results only. Creation forms close on success and select newly created events/sessions. See `docs/app-checkpoint.md` for migration and verification.

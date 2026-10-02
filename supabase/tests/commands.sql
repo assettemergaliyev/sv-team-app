@@ -24,6 +24,7 @@ do $$ begin begin insert into public.athlete_group_memberships(club_id,athlete_i
 
 create function pg_temp.sv_assert(p_ok boolean,p_message text) returns void language plpgsql as $$
 begin if p_ok is distinct from true then raise exception 'FAILED: %',p_message; end if; end $$;
+with chosen as (select id,row_number() over(partition by club_id,session_participant_id order by (status='FINISHED') desc,time_cs asc nulls last,id) n from public.attempts where club_id in ('10000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000011')) update public.attempts a set is_current=true from chosen c where a.id=c.id and c.n=1;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 do $$ declare
@@ -57,12 +58,11 @@ begin
  r:=public.sv_command(c,'REGISTER_PARTICIPANT',jsonb_build_object('session_id',sessions[1],'athlete_id',a),gen_random_uuid());sp:=(r->>'id')::uuid;
  r2:=public.sv_command(c,'REGISTER_PARTICIPANT',jsonb_build_object('session_id',sessions[1],'athlete_id',a),gen_random_uuid());
  perform pg_temp.sv_assert(r->>'id'=r2->>'id','duplicate participant registration');
- r:=public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('session_participant_id',sp,'attempt_no',1,'status','DRAFT'),gen_random_uuid());at1:=(r->>'id')::uuid;
  begin
   perform public.sv_command(c,'PUBLISH_SESSION',jsonb_build_object('id',sessions[1],'expected_revision',1),gen_random_uuid());
   raise exception 'FAILED incomplete publish'; exception when invalid_parameter_value then null; end;
- r:=public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('id',at1,'expected_revision',1,'status','FINISHED','time_cs',6500),gen_random_uuid());
- perform pg_temp.sv_assert((r->>'revision')::integer=2,'draft attempt updated');
+ r:=public.sv_command(c,'SAVE_RESULT',jsonb_build_object('session_participant_id',sp,'time_cs',6500),gen_random_uuid());at1:=(r->>'id')::uuid;
+ perform pg_temp.sv_assert((r->>'revision')::integer=1,'single result created');
  req:=gen_random_uuid(); payload:=jsonb_build_object('id',sessions[1],'expected_revision',1);
  r:=public.sv_command(c,'PUBLISH_SESSION',payload,req);r2:=public.sv_command(c,'PUBLISH_SESSION',payload,req);
  perform pg_temp.sv_assert(r=r2,'publish retry idempotent');
@@ -74,7 +74,7 @@ begin
   perform public.sv_command(c,'CANCEL_SESSION',jsonb_build_object('id',sessions[1],'expected_revision',2),gen_random_uuid());
   raise exception 'FAILED published delete'; exception when invalid_parameter_value then null; end;
  r:=public.sv_command(c,'REGISTER_PARTICIPANT',jsonb_build_object('session_id',sessions[2],'athlete_id',a),gen_random_uuid());sp:=(r->>'id')::uuid;
- r:=public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('session_participant_id',sp,'attempt_no',1,'status','FINISHED','time_cs',6300),gen_random_uuid());at2:=(r->>'id')::uuid;
+ r:=public.sv_command(c,'SAVE_RESULT',jsonb_build_object('session_participant_id',sp,'attempt_no',1,'status','FINISHED','time_cs',6300),gen_random_uuid());at2:=(r->>'id')::uuid;
  perform public.sv_command(c,'PUBLISH_SESSION',jsonb_build_object('id',sessions[2],'expected_revision',1),gen_random_uuid());
  perform pg_temp.sv_assert((select count(*)=1 from public.event_leaderboard where event_id=e),'multiple sessions single result');
  perform pg_temp.sv_assert((select best_time_cs=6300 from public.event_leaderboard where event_id=e),'best across sessions');
@@ -85,18 +85,18 @@ begin
  perform public.sv_command(c,'CLOSE_EVENT',jsonb_build_object('id',e,'expected_revision',1),gen_random_uuid());
  select closed_at into v_closed from public.test_events where id=e;
  begin
-  perform public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6200),gen_random_uuid());
+  perform public.sv_command(c,'SAVE_RESULT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6200),gen_random_uuid());
   raise exception 'FAILED correction without reason'; exception when invalid_parameter_value then null; end;
- perform public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6200,'reason','Corrected stopwatch transcription'),gen_random_uuid());
+ perform public.sv_command(c,'SAVE_RESULT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6200,'reason','Corrected stopwatch transcription'),gen_random_uuid());
  perform pg_temp.sv_assert((select lifecycle='CLOSED' and closed_at=v_closed from public.test_events where id=e),'correction keeps event closed');
  perform pg_temp.sv_assert((select best_time_cs=6200 from public.event_leaderboard where event_id=e),'closed correction recomputes ranking');
  perform pg_temp.sv_assert((select before_payload->>'time_cs'='6300' and after_payload->'record'->>'time_cs'='6200' from public.audit_log where entity_id=at2 and before_payload is not null),'correction audit before after');
  begin
-  perform public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6100,'reason','Stale edit'),gen_random_uuid());
+  perform public.sv_command(c,'SAVE_RESULT',jsonb_build_object('id',at2,'expected_revision',1,'status','FINISHED','time_cs',6100,'reason','Stale edit'),gen_random_uuid());
   raise exception 'FAILED revision conflict'; exception when serialization_failure then null; end;
  begin
-  perform public.sv_command(c,'SAVE_ATTEMPT',jsonb_build_object('session_participant_id',sp,'attempt_no',2,'status','FINISHED','time_cs',6100),gen_random_uuid());
-  raise exception 'FAILED closed new attempt'; exception when invalid_parameter_value then null; end;
+  perform public.sv_command(c,'SAVE_RESULT',jsonb_build_object('session_participant_id',sp,'attempt_no',2,'status','FINISHED','time_cs',6100),gen_random_uuid());
+  raise exception 'FAILED closed new result'; exception when serialization_failure then null; end;
  begin
   perform public.sv_command(c,'CREATE_SESSION',jsonb_build_object('event_id',e,'scheduled_on','2026-10-01','scheduled_at','2026-10-01T08:00:00+05:00','label','Closed'),gen_random_uuid());
   raise exception 'FAILED closed new session'; exception when invalid_parameter_value then null; end;

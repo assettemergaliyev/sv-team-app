@@ -51,3 +51,7 @@ Run `node tests/time-validation.test.js` and `node tests/athlete-analytics.test.
 `.github/`: issue and pull request templates.
 
 Next.js, TypeScript and Supabase are approved. Hosting remains unconfirmed; Vercel is a candidate. No open-source license has been selected.
+
+### Current mobile workflow (2026-10-02)
+
+Staff: add a test → create an event → add a session → register athletes → enter one time per athlete → publish. Use **Edit** to correct a result, or remove the athlete from that session. Published corrections/removals require a reason and are audited. **Rating** is a separate tab; athlete accounts see only published standings and own results. Creation forms close after saving. Earlier prototype attempt/status controls are superseded by this workflow.

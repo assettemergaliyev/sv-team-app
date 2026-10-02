@@ -32,8 +32,11 @@ export function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const known: [string, string][] = [
     ['Invalid login credentials', 'Неверная почта или пароль.'],
+    ['Result exists', 'Результат уже внесён. Обнови страницу и используй «Изменить».'],
+    ['Active participation required', 'Участник уже убран из сессии. Обнови страницу.'],
+    ['Positive result required', 'Время должно быть больше нуля.'],
     ['Revision conflict', 'Запись уже изменена. Обнови страницу и повтори исправление.'],
-    ['Unfinished entries', 'Заполни все попытки или отметь DNS, DNF либо DSQ перед публикацией.'],
+    ['Unfinished entries', 'Внеси время каждому участнику или убери его из сессии перед публикацией.'],
     ['No participants', 'Сначала добавь участников и результаты.'],
     ['finish or cancel drafts', 'Перед закрытием опубликуй или удали оставшиеся черновики.'],
     ['Correction reason', 'Укажи причину исправления опубликованного результата.'],

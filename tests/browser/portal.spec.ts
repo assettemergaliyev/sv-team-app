@@ -12,7 +12,7 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
     test_events: [{ id: event, club_id: club, definition_id: definition, title: 'Контрольный старт — пример', lifecycle: 'OPEN', revision: 1 }],
     test_sessions: [{ id: session, club_id: club, event_id: event, scheduled_on: '2026-10-02', scheduled_at: '2026-10-02T02:00:00Z', label: 'Плавание — утро', status: 'DRAFT', revision: 1 }],
     event_participants: [{ id: participant, club_id: club, event_id: event, athlete_id: athlete }],
-    session_participants: [{ id: entry, club_id: club, event_id: event, session_id: session, event_participant_id: participant }],
+    session_participants: [{ id: entry, club_id: club, event_id: event, session_id: session, event_participant_id: participant, revision: 1, removed_at: null }],
     attempts: [], event_leaderboard: [],
   };
   const mockUser = { id: user, email: 'test-admin@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
@@ -26,9 +26,9 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/rpc/sv_command')) {
       const body = route.request().postDataJSON();
-      if (body.p_action === 'SAVE_ATTEMPT') {
+      if (body.p_action === 'SAVE_RESULT') {
         saves++;
-        tables.attempts.push({ id: id(9), club_id: club, session_participant_id: entry, attempt_no: 1, revision: 1, status: body.p_payload.status, time_cs: body.p_payload.time_cs });
+        tables.attempts.push({ id: id(9), club_id: club, session_participant_id: entry, attempt_no: 1, revision: 1, status: 'FINISHED', is_current: true, time_cs: body.p_payload.time_cs });
       } else if (body.p_action === 'PUBLISH_SESSION') {
         tables.test_sessions[0].status = 'PUBLISHED'; tables.test_sessions[0].revision = 2;
         tables.event_leaderboard = [{ club_id: club, event_id: event, athlete_id: athlete, best_time_cs: 3250, place: 1 }];
@@ -49,22 +49,25 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
   expect(logoutBounds?.width).toBe(44);
   await page.getByRole('button', { name: 'Тесты', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Группы', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Старты', exact: true }).click();
+  await page.getByRole('button', { name: 'Рейтинг', exact: true }).click();
   await page.locator('.language-picker summary').click();
   await page.getByRole('button', { name: 'English', exact: false }).click();
-  await expect(page.getByRole('heading', { name: 'Control events', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overall standings', exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Control events', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overall standings', exact: true })).toBeVisible();
   await page.locator('.language-picker summary').click();
   await page.getByRole('button', { name: 'Қазақша', exact: false }).click();
-  await expect(page.getByRole('heading', { name: 'Бақылау старттары', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Жалпы рейтинг', exact: true })).toBeVisible();
   await page.locator('.language-picker summary').click();
   await page.getByRole('button', { name: 'Русский', exact: false }).click();
+  await page.getByRole('button', { name: 'Старты', exact: true }).click();
   await page.getByLabel('Выбрать старт').selectOption(event);
-  const time = page.locator('.attempt').getByLabel('Время', { exact: true });
+  await page.getByRole('button', { name: 'Внести время' }).click();
+  const time = page.locator('.result-editor').getByLabel('Время', { exact: true });
+  await expect(page.getByLabel('Статус', { exact: true })).toHaveCount(0);
   await time.fill('006900');
   await expect(time).toHaveValue('00:69.00');
-  await page.getByRole('button', { name: 'Сохранить попытку' }).click();
+  await page.getByRole('button', { name: 'Сохранить результат' }).click();
   await expect(page.getByRole('alert')).toContainText('Минуты и секунды');
   expect(saves).toBe(0);
   await time.fill('003250');
@@ -72,10 +75,13 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
   const checkbox = page.getByLabel('Добавить часы');
   const bounds = await checkbox.boundingBox();
   expect(bounds?.width).toBe(16); expect(bounds?.height).toBe(16);
-  await page.getByRole('button', { name: 'Сохранить попытку' }).click();
-  await expect(page.getByText('Попытка 1:', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Сохранить результат' }).click();
+  await expect(page.locator('.result-line')).toContainText('00:32.50');
+  await expect(page.getByRole('button', { name: 'Внести время' })).toHaveCount(0);
+  await expect(page.getByText('Попытка 2', { exact: true })).toHaveCount(0);
   expect(saves).toBe(1);
   await page.getByRole('button', { name: 'Опубликовать сессию' }).click();
+  await page.getByRole('button', { name: 'Рейтинг', exact: true }).click();
   await expect(page.getByRole('cell', { name: '00:32.50' })).toBeVisible();
   await page.reload();
   await page.getByLabel('Выбрать старт').selectOption(event);

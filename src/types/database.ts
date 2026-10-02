@@ -258,6 +258,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_current: boolean
           occurred_at: string | null
           revision: number
           session_participant_id: string
@@ -272,6 +273,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_current?: boolean
           occurred_at?: string | null
           revision?: number
           session_participant_id: string
@@ -286,6 +288,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_current?: boolean
           occurred_at?: string | null
           revision?: number
           session_participant_id?: string
@@ -561,6 +564,7 @@ export type Database = {
           event_id: string
           event_participant_id: string
           id: string
+          removed_at: string | null
           revision: number
           session_id: string
           updated_at: string
@@ -573,6 +577,7 @@ export type Database = {
           event_id: string
           event_participant_id: string
           id?: string
+          removed_at?: string | null
           revision?: number
           session_id: string
           updated_at?: string
@@ -585,6 +590,7 @@ export type Database = {
           event_id?: string
           event_participant_id?: string
           id?: string
+          removed_at?: string | null
           revision?: number
           session_id?: string
           updated_at?: string
@@ -1039,4 +1045,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

@@ -7,7 +7,7 @@ Applied migrations:
 1. `20261001190100_initial_schema_and_read_access.sql`: 21 application tables plus existing managed `auth.users`, composite tenant/event foreign keys, duration constraints, date-based private athlete data, membership overlap constraint, RLS and security-invoker leaderboard.
 2. `20261001190802_audited_sports_commands.sql`: checked transactional write commands, revision checks, request idempotency, append-only audit by restricted command execution, FK indexes. Function bodies were verified against the remote migration history.
 
-Migration filenames were originally created by Supabase CLI 2.119.0 with `migration new`, then aligned to the version IDs returned by remote migration history. Apply the migrations in order. Working SQL drafts are excluded from this publication; only applied migrations are included.
+Migration filenames were originally created by Supabase CLI 2.119.0 with `migration new`, then aligned to the version IDs returned by remote migration history. Apply the migrations in order. `sql/*_candidate.sql` are working copies of the two applied migrations, not extra migrations to run.
 
 ## Security boundary
 
@@ -67,3 +67,9 @@ Birth date uses PostgreSQL DATE, examples/API YYYY-MM-DD, intended UI DD.MM.YYYY
 - End-to-end REST/Auth session/browser tests and parallel-client stress tests before production.
 
 Source: current Supabase RLS docs via search_docs, changelog index including PostgreSQL minor-upgrade/Data API GRANT changes, checked 2026-10-01. Grant statements are explicit; leaderboard is security_invoker.
+
+## Current result commands (2026-10-02)
+
+`single_session_result` supersedes multi-attempt writes: `SAVE_RESULT` creates or revises one current timed row for each session participation; `SAVE_ATTEMPT` is rejected. `REMOVE_PARTICIPANT` soft-removes one session entry with expected revision and, for published/closed records, a reason. Retired rows and audit history remain. `attempts.is_current` has a partial unique index; `session_participants.removed_at` excludes removed entries from publication checks, athlete reads and event standings. Existing best timed rows become current without deleting history. UI sends no athlete finish/DNS/DNF status.
+
+Run `tests/read_access.sql`, `tests/commands.sql` and `tests/single_result.sql` against the current schema; each suite uses synthetic BEGIN/ROLLBACK fixtures. Their assertions cover access, tenant boundaries, single-result writes, stale revisions, slower corrections, removal, re-add and published/closed auditing.
