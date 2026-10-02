@@ -19,3 +19,17 @@ assert.equal(all.length, 1001);
 assert.equal(all[1000].id, 1000);
 await assert.rejects(allRows(async () => ({ data: null, error: { message: 'network test failure' } })));
 console.log('App duration, date/timezone and pagination checks passed');
+
+// Every static portal label must have both non-Russian translations.
+const { translations, translate } = await import('../src/lib/translations.ts');
+const { readFileSync } = await import('node:fs');
+const portalSource = readFileSync(new URL('../src/components/portal.tsx', import.meta.url), 'utf8');
+for (const match of portalSource.matchAll(/\bt\(["']([^"']+)["']\)/g)) {
+  assert.ok(translations[match[1]]?.en, `English translation: ${match[1]}`);
+  assert.ok(translations[match[1]]?.kk, `Kazakh translation: ${match[1]}`);
+}
+assert.equal(translate('Старты', 'en'), 'Events');
+assert.equal(translate('Тесты', 'kk'), 'Тесттер');
+assert.equal(translate('Администратор', 'ru'), 'Администратор');
+assert.equal(translate('A user-entered session title', 'kk'), 'A user-entered session title');
+console.log('Russian, Kazakh and English label coverage passed');

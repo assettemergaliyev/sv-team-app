@@ -2,9 +2,9 @@ import type { Database } from '@/types/database';
 export type Row<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 export type Rank = Database['public']['Views']['event_leaderboard']['Row'];
 export type Club = Row<'clubs'> & { role: string };
-export type BaseData = { athletes: Row<'athletes'>[]; definitions: Row<'test_definitions'>[]; groups: Row<'sport_groups'>[]; events: Row<'test_events'>[] };
+export type BaseData = { athletes: Row<'athletes'>[]; definitions: Row<'test_definitions'>[]; events: Row<'test_events'>[] };
 export type EventData = { sessions: Row<'test_sessions'>[]; participants: Row<'event_participants'>[]; entries: Row<'session_participants'>[]; attempts: Row<'attempts'>[]; ranks: Rank[] };
-export const emptyBase: BaseData = { athletes: [], definitions: [], groups: [], events: [] };
+export const emptyBase: BaseData = { athletes: [], definitions: [], events: [] };
 export const emptyEvent: EventData = { sessions: [], participants: [], entries: [], attempts: [], ranks: [] };
 export async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
   const rows: T[] = [];

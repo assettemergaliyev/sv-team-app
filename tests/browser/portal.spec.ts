@@ -8,7 +8,7 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
     clubs: [{ id: club, name: 'SV Team — тест интерфейса', timezone: 'Asia/Almaty' }],
     athletes: [{ id: athlete, club_id: club, first_name: 'Тестовый', last_name: 'Спортсмен', sport_status: 'ACTIVE' }],
     test_definitions: [{ id: definition, club_id: club, discipline: 'SWIMMING', distance_m: 50, stroke_code: 'FREESTYLE' }],
-    sport_groups: [],
+    athlete_accounts: [],
     test_events: [{ id: event, club_id: club, definition_id: definition, title: 'Контрольный старт — пример', lifecycle: 'OPEN', revision: 1 }],
     test_sessions: [{ id: session, club_id: club, event_id: event, scheduled_on: '2026-10-02', scheduled_at: '2026-10-02T02:00:00Z', label: 'Плавание — утро', status: 'DRAFT', revision: 1 }],
     event_participants: [{ id: participant, club_id: club, event_id: event, athlete_id: athlete }],
@@ -44,6 +44,22 @@ test('login, duration mask, saving and publication survive page reload (mock Aut
   await page.getByLabel('Пароль', { exact: true }).fill('synthetic-test-password');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'SV Team — тест интерфейса' })).toBeVisible();
+  await expect(page.locator('header')).not.toContainText('test-admin@example.com');
+  const logoutBounds = await page.getByRole('button', { name: 'Выйти' }).boundingBox();
+  expect(logoutBounds?.width).toBe(44);
+  await page.getByRole('button', { name: 'Тесты', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Группы', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Старты', exact: true }).click();
+  await page.locator('.language-picker summary').click();
+  await page.getByRole('button', { name: 'English', exact: false }).click();
+  await expect(page.getByRole('heading', { name: 'Control events', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Control events', exact: true })).toBeVisible();
+  await page.locator('.language-picker summary').click();
+  await page.getByRole('button', { name: 'Қазақша', exact: false }).click();
+  await expect(page.getByRole('heading', { name: 'Бақылау старттары', exact: true })).toBeVisible();
+  await page.locator('.language-picker summary').click();
+  await page.getByRole('button', { name: 'Русский', exact: false }).click();
   await page.getByLabel('Выбрать старт').selectOption(event);
   const time = page.locator('.attempt').getByLabel('Время', { exact: true });
   await time.fill('006900');

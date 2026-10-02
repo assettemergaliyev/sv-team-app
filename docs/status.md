@@ -29,3 +29,7 @@ Athlete validation: 8 analytics checks passed. Browser QA was blocked: no instal
 
 ## 2026-10-01 — multi-session coach prototype
 Implemented prototypes/sessions.html with four synthetic sessions over two days, add-session and participant flows, attempt entry, publication, combined leaderboard and event closure. Original coach flow remains available; athlete prototype has not yet been wired to this model. Session analytics scenario checks passed. No persistence or server permissions. Browser visual QA remains unverified.
+
+### 2026-10-02 — mobile simplification and languages
+
+Current Next.js portal removes groups from athlete/session workflows, replaces full-width logout with an accessible header icon, hides email, displays role or available name, and supports RU/KK/EN with device-local language persistence. Historical group schema and links are retained. See `docs/app-checkpoint.md` for scope and verification limits.

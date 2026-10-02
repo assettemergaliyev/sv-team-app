@@ -46,3 +46,12 @@ For an existing locally installed Chrome for Testing binary, the test configurat
 Choose hosting (Vercel remains a candidate), configure its two public Supabase environment variables, then check real administrator login and a disposable session end to end. Historical data import stays separate. Invite delivery/recovery screens, athlete profile/progress pages, catalog editing, cancellation recovery UI, triathlon segment entry and admin role-management UI are still pending. Existing DB operations cover some of those future screens; do not use privileged client writes to bypass them.
 
 The duration input retains the prototype's optional two-digit hours 00–23. This is a UI limitation pending a product rule; the DB stores longer durations in BIGINT hundredths and does not impose that cap. UI labels are currently RU; localization is not complete.
+
+## Mobile interface update — 2026-10-02
+
+- Groups removed from the current portal: no group catalog, fetch, or session selector. New sessions send `group_id: null`; any athlete can join a session. Existing schema/data and historical group links are preserved, with no destructive migration.
+- Header uses a 44px logout icon with accessible translated label, alongside a flag + language-code dropdown (RU / Қазақша / English). Email is no longer displayed in the signed-in header.
+- ADMIN displays the translated role. COACH displays Auth profile name + role when available, otherwise role. ATHLETE displays the linked athlete first/last name, then profile name, then role as fallback. Display names do not determine authorization.
+- Static portal labels, status text, time guidance and known errors translated; language remembered per browser/device. User-entered names/titles stay as entered. The document language and title update with selection. Raw unforeseen server errors may retain their original language.
+- Type checks, build and domain tests include translation coverage. Browser scenario extended for mobile logout size, hidden email/groups, three-language switching and reload persistence; execution remains blocked by the previously documented Chromium restrictions in this environment.
+- User confirmed using the deployed application on a phone. Hosting is Vercel (`sv-team-app`), backed by the existing Supabase dev project. This update does not import historical athletes/results.
