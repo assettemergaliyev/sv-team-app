@@ -37,3 +37,7 @@ Current Next.js portal removes groups from athlete/session workflows, replaces f
 ### 2026-10-02 — one result and separate standings
 
 Current Next.js app now uses one timed result per athlete/session, with editing and audited participant removal. Athlete finish/DNS/DNF selectors removed. Rating is a separate default tab; athlete accounts see published standings and own results only. Creation forms close on success and select newly created events/sessions. See `docs/app-checkpoint.md` for migration and verification.
+
+### 2026-10-02 — shirt-inspired branding
+
+Replaced duplicated header titles with a single typographic SV TEAM lockup, TRIATHLON–SWIM and KAZAKHSTAN. White header, teal primary buttons, yellow selection accents, near-black text, and a small colour stripe on login. Palette and wordmark approximate the supplied shirt photograph; no official vector asset is available. Compact language/logout controls and account identity retained. Typecheck, domain tests and production build passed. Browser visual verification remains blocked by the existing Chromium runtime restriction; mobile appearance needs review on the deployed app. No data model or permissions changes.

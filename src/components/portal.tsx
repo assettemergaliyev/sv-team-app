@@ -7,6 +7,15 @@ import { browserDatabase } from '@/lib/supabase';
 import { allRows, emptyBase, emptyEvent, friendlyError, localSessionISO, type BaseData, type EventData, type Club, type Row } from '@/lib/data';
 import { maskTime, parseTime, formatTime, dateLabel } from '@/lib/time';
 
+// Typographic adaptation of the club shirt; replace with the official vector when available.
+function Brand() {
+  return <div className="brand-lockup" role="img" aria-label="SV Team — Triathlon–Swim, Kazakhstan">
+    <span className="brand-wordmark" aria-hidden="true"><span className="brand-sv">SV</span><span className="brand-team">TEAM</span></span>
+    <span className="brand-discipline" aria-hidden="true">TRIATHLON–SWIM</span>
+    <span className="brand-country" aria-hidden="true">KAZAKHSTAN</span>
+  </div>;
+}
+
 type Command = (action: string, payload: Record<string, Json>) => Promise<boolean>;
 const statusLabels: Record<string, string> = { DRAFT: 'Черновик', PUBLISHED: 'Опубликована', CANCELLED: 'Удалена', OPEN: 'Старт открыт', CLOSED: 'Старт закрыт' };
 const field = (f: FormData, key: string) => String(f.get(key) ?? '').trim();
@@ -145,9 +154,9 @@ function ClubPortal() {
   const visibleTab = staff ? tab : 'rating';
   const activeEntries = detail.entries.filter(sp => !sp.removed_at);
   const registeredAthletes = new Set(activeEntries.filter(sp => sp.session_id === sessionId).map(sp => detail.participants.find(p => p.id === sp.event_participant_id)?.athlete_id));
-  if (checking) return <main className="login"><header><div className="header-toolbar"><span className="brand">SV TEAM</span><LanguagePicker /></div><h1>{t("Проверяем вход…")}</h1></header></main>;
-  if (!email) return <main className="login"><header><div className="header-toolbar"><span className="brand">SV TEAM</span><LanguagePicker /></div><h1>{t("Результаты твоей команды")}</h1><p>{t("Войди в аккаунт клуба.")}</p></header><div className="body"><form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><label>{t("Пароль")}<input name="password" type="password" autoComplete="current-password" required disabled={busy} /></label><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button></form>{error && <p className="notice error" role="alert">{t(error)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
-  return <main><header><div className="header-toolbar"><span className="brand">SV TEAM</span><div className="header-actions"><LanguagePicker /><button className="icon-button" aria-label={t("Выйти")} title={t("Выйти")} disabled={busy} onClick={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 4H4v16h5M14 8l4 4-4 4M8 12h10" /></svg></button></div></div><h1>{club?.name ?? t("Нет доступа к клубу")}</h1><p>{staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")}</p><small>{identity}</small></header><div className="body">
+  if (checking) return <main className="login"><header><div className="header-toolbar"><Brand /><LanguagePicker /></div><h1>{t("Проверяем вход…")}</h1></header></main>;
+  if (!email) return <main className="login"><header><div className="header-toolbar"><Brand /><LanguagePicker /></div><h1>{t("Результаты твоей команды")}</h1><p>{t("Войди в аккаунт клуба.")}</p></header><div className="body"><form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><label>{t("Пароль")}<input name="password" type="password" autoComplete="current-password" required disabled={busy} /></label><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button></form>{error && <p className="notice error" role="alert">{t(error)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
+  return <main><header><div className="header-toolbar"><Brand /><div className="header-actions"><LanguagePicker /><button className="icon-button" aria-label={t("Выйти")} title={t("Выйти")} disabled={busy} onClick={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 4H4v16h5M14 8l4 4-4 4M8 12h10" /></svg></button></div></div><h1 className="portal-heading">{club ? (staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")) : t("Нет доступа к клубу")}</h1><small className="account-identity">{identity}</small></header><div className="body">
     {!club ? <div className="empty">{t("У аккаунта нет активного доступа. Обратись к администратору клуба.")}</div> : <>
       {clubs.length > 1 && <label>{t("Клуб")}<select value={clubId} disabled={busy} onChange={e => setClubId(e.target.value)}>{clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
       <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button></>}</nav>
