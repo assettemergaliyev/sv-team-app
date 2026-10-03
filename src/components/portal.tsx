@@ -6,7 +6,7 @@ import { LanguageProvider, LanguagePicker, useLanguage } from '@/components/lang
 import { browserDatabase } from '@/lib/supabase';
 import { allRows, emptyBase, emptyEvent, friendlyError, localSessionISO, type BaseData, type EventData, type Club, type Row } from '@/lib/data';
 import { maskTime, parseTime, formatTime, dateLabel } from '@/lib/time';
-import { bestHistoryPerDefinition, buildHistoryResults, denseRank, type HistoryResult, type HistorySource } from '@/lib/history';
+import { bestHistoryPerDefinition, buildHistoryResults, denseRank, historyWithPersonalBests, type HistoryResult, type HistorySource } from '@/lib/history';
 
 // Typographic adaptation of the club shirt; replace with the official vector when available.
 function Brand() {
@@ -44,7 +44,7 @@ function ClubPortal() {
   const [checking, setChecking] = useState(true), [email, setEmail] = useState('');
   const [clubs, setClubs] = useState<Club[]>([]), [clubId, setClubId] = useState('');
   const [base, setBase] = useState<BaseData>(emptyBase), [eventId, setEventId] = useState(''), [detail, setDetail] = useState<EventData>(emptyEvent);
-  const [historySource, setHistorySource] = useState<HistorySource>({ sessions: [], participants: [], entries: [], attempts: [] });
+  const [historySource, setHistorySource] = useState<HistorySource>({ sessions: [], participants: [], entries: [], attempts: [], personalBests: [] });
   const [ratingSelection, setRatingSelection] = useState('__ALL_HISTORY__');
   const [historyDiscipline, setHistoryDiscipline] = useState('');
   const [historyDistance, setHistoryDistance] = useState('');
@@ -106,13 +106,14 @@ function ClubPortal() {
     return { athletes, definitions, events };
   }, []);
   const fetchHistory = useCallback(async (client: SupabaseClient<Database>, id: string): Promise<HistorySource> => {
-    const [sessions, participants, entries, attempts] = await Promise.all([
+    const [sessions, participants, entries, attempts, personalBests] = await Promise.all([
       allRows((a, b) => client.from('test_sessions').select('id,event_id,scheduled_on,status').eq('club_id', id).order('scheduled_on', { ascending: false }).range(a, b)),
       allRows((a, b) => client.from('event_participants').select('id,athlete_id').eq('club_id', id).range(a, b)),
       allRows((a, b) => client.from('session_participants').select('id,session_id,event_participant_id,removed_at').eq('club_id', id).is('removed_at', null).range(a, b)),
       allRows((a, b) => client.from('attempts').select('session_participant_id,time_cs,status,is_current').eq('club_id', id).eq('is_current', true).eq('status', 'FINISHED').range(a, b)),
+      allRows((a, b) => client.from('personal_best_records').select('athlete_id,definition_id,recorded_on,time_cs').eq('club_id', id).range(a, b)),
     ]);
-    return { sessions, participants, entries, attempts };
+    return { sessions, participants, entries, attempts, personalBests };
   }, []);
   const fetchEvent = useCallback(async (client: SupabaseClient<Database>, id: string, selected: string) => {
     const [sessions, participants, entries, ranks] = await Promise.all([
@@ -134,7 +135,7 @@ function ClubPortal() {
     return { sessions, participants, entries, attempts, segments, ranks };
   }, []);
   useEffect(() => {
-    let current = true; setBase(emptyBase); setDetail(emptyEvent); setHistorySource({ sessions: [], participants: [], entries: [], attempts: [] }); setEventId(''); setRatingSelection('__ALL_HISTORY__'); setSessionId(''); setBaseLoading(!!(db && clubId));
+    let current = true; setBase(emptyBase); setDetail(emptyEvent); setHistorySource({ sessions: [], participants: [], entries: [], attempts: [], personalBests: [] }); setEventId(''); setRatingSelection('__ALL_HISTORY__'); setSessionId(''); setBaseLoading(!!(db && clubId));
     if (db && clubId) void Promise.all([fetchBase(db, clubId), fetchHistory(db, clubId)]).then(([b, h]) => { if (current) { setBase(b); setHistorySource(h); setEventId(b.events[0]?.id ?? ''); } }).catch(e => { if (current) setError(friendlyError(e)); }).finally(() => { if (current) setBaseLoading(false); });
     return () => { current = false; };
   }, [db, clubId, fetchBase, fetchHistory]);
@@ -192,7 +193,7 @@ function ClubPortal() {
   const disciplineLabel = (code: string) => t(code === 'SWIMMING' ? 'Плавание' : code === 'RUNNING' ? 'Бег' : code === 'TRIATHLON' ? 'Триатлон' : code);
   const sortedDefinitions = base.definitions.filter(d => d.is_active).sort((a, b) => disciplineLabel(a.discipline).localeCompare(disciplineLabel(b.discipline), locale) || Number(a.distance_m) - Number(b.distance_m) || category(a.id).localeCompare(category(b.id), locale));
   const historicalAttempts = buildHistoryResults(historySource, base.events);
-  const historyResults = bestHistoryPerDefinition(historicalAttempts);
+  const historyResults = historyWithPersonalBests(historicalAttempts, historySource.personalBests);
   const athleteById = new Map(base.athletes.map(a => [a.id, a]));
   const definitionsById = new Map(base.definitions.map(d => [d.id, d]));
   const groupMap = new Map<string, { key: string; date: string; discipline: string; distance: number; eventIds: string[] }>();
