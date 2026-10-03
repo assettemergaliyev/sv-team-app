@@ -46,6 +46,7 @@ function ClubPortal() {
   const [historyDistance, setHistoryDistance] = useState('');
   const [historySex, setHistorySex] = useState('');
   const [historyType, setHistoryType] = useState('');
+  const [selectedAthleteId, setSelectedAthleteId] = useState('');
   const [editAthleteId, setEditAthleteId] = useState('');
   const [tab, setTab] = useState<'events' | 'athletes' | 'catalog' | 'rating'>('rating');
   const [newTestDiscipline, setNewTestDiscipline] = useState('SWIMMING');
@@ -181,9 +182,10 @@ function ClubPortal() {
   const registeredAthletes = new Set(activeEntries.filter(sp => sp.session_id === sessionId).map(sp => detail.participants.find(p => p.id === sp.event_participant_id)?.athlete_id));
   const eventStartDate = (id: string) => historySource.sessions.filter(s => s.event_id === id && s.status === 'PUBLISHED').map(s => s.scheduled_on).sort().at(-1) ?? '';
   const eventLabel = (item: Row<'test_events'>) => `${eventStartDate(item.id) ? dateLabel(eventStartDate(item.id)) : ''}${eventStartDate(item.id) ? ' — ' : ''}${category(item.definition_id)}`;
-  const sortedEvents = [...base.events].sort((a, b) => eventStartDate(b.id).localeCompare(eventStartDate(a.id)) || a.id.localeCompare(b.id));
+  const activeDefinitionIds = new Set(base.definitions.filter(d => d.is_active).map(d => d.id));
+  const sortedEvents = base.events.filter(e => activeDefinitionIds.has(e.definition_id)).sort((a, b) => eventStartDate(b.id).localeCompare(eventStartDate(a.id)) || a.id.localeCompare(b.id));
   const disciplineLabel = (code: string) => t(code === 'SWIMMING' ? 'Плавание' : code === 'RUNNING' ? 'Бег' : code === 'TRIATHLON' ? 'Триатлон' : code);
-  const sortedDefinitions = [...base.definitions].sort((a, b) => disciplineLabel(a.discipline).localeCompare(disciplineLabel(b.discipline), locale) || Number(a.distance_m) - Number(b.distance_m) || category(a.id).localeCompare(category(b.id), locale));
+  const sortedDefinitions = base.definitions.filter(d => d.is_active).sort((a, b) => disciplineLabel(a.discipline).localeCompare(disciplineLabel(b.discipline), locale) || Number(a.distance_m) - Number(b.distance_m) || category(a.id).localeCompare(category(b.id), locale));
   const historicalAttempts = buildHistoryResults(historySource, base.events);
   const historyResults = bestHistoryPerDefinition(historicalAttempts);
   const athleteById = new Map(base.athletes.map(a => [a.id, a]));
@@ -191,7 +193,7 @@ function ClubPortal() {
   const groupMap = new Map<string, { key: string; date: string; discipline: string; distance: number; eventIds: string[] }>();
   for (const item of base.events) {
     const date = eventStartDate(item.id), definition = definitionsById.get(item.definition_id);
-    if (!date || !definition) continue;
+    if (!date || !definition?.is_active) continue;
     const key = `${date}|${definition.discipline}|${Number(definition.distance_m)}`;
     const group = groupMap.get(key) ?? { key, date, discipline: definition.discipline, distance: Number(definition.distance_m), eventIds: [] };
     if (!group.eventIds.includes(item.id)) group.eventIds.push(item.id);
@@ -200,7 +202,9 @@ function ClubPortal() {
   const ratingGroups = [...groupMap.values()].sort((a, b) => b.date.localeCompare(a.date) || a.discipline.localeCompare(b.discipline) || a.distance - b.distance);
   const selectedRatingGroup = ratingGroups.find(g => g.key === ratingSelection);
   const rankRows = (rows: HistoryResult[]) => denseRank(rows).map(row => ({ ...row, athlete: athleteById.get(row.athleteId) })).sort((a, b) => a.place - b.place || `${a.athlete?.last_name ?? ''} ${a.athlete?.first_name ?? ''}`.localeCompare(`${b.athlete?.last_name ?? ''} ${b.athlete?.first_name ?? ''}`, locale));
-  const historyOptions = historyResults.map(row => ({ row, athlete: athleteById.get(row.athleteId), definition: definitionsById.get(row.definitionId) })).filter((x): x is { row: HistoryResult; athlete: NonNullable<typeof x.athlete>; definition: NonNullable<typeof x.definition> } => !!x.athlete && !!x.definition);
+  const historyOptions = historyResults.map(row => ({ row, athlete: athleteById.get(row.athleteId), definition: definitionsById.get(row.definitionId) })).filter((x): x is { row: HistoryResult; athlete: NonNullable<typeof x.athlete>; definition: NonNullable<typeof x.definition> } => !!x.athlete && !!x.definition?.is_active);
+  const selectedAthlete = base.athletes.find(a => a.id === selectedAthleteId);
+  const selectedAthleteHistory = selectedAthlete ? historicalAttempts.filter(row => row.athleteId === selectedAthlete.id && definitionsById.get(row.definitionId)?.is_active).sort((a, b) => b.date.localeCompare(a.date)) : [];
   const candidateHistory = historyOptions.filter(({ athlete, definition }) =>
     (!historyDiscipline || definition.discipline === historyDiscipline) &&
     (!historyDistance || Number(definition.distance_m) === Number(historyDistance)) &&
@@ -236,9 +240,10 @@ function ClubPortal() {
       {visibleTab === 'athletes' && staff && <>
         <h2>{t("Спортсмены клуба")}</h2>
         <h3>{t("Активные спортсмены")}</h3>
-        <ul className="list">{activeAthletes.map(a => <li key={a.id}><strong>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</strong></li>)}</ul>
+        <ul className="list">{activeAthletes.map(a => <li key={a.id}><button className="athlete-link" onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul>
         {!activeAthletes.length && <p className="empty">{t("Активных спортсменов нет.")}</p>}
-        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><span>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</span></li>)}</ul></>}
+        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><button className="athlete-link" onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></>}
+        {selectedAthlete && <section className="card athlete-history"><div className="section-heading"><h3>{[selectedAthlete.last_name, selectedAthlete.first_name].filter(Boolean).join(' ')}</h3><button onClick={() => setSelectedAthleteId('')}>{t("Закрыть")}</button></div><h4>{t("История стартов")}</h4>{selectedAthleteHistory.length ? <div className="table-scroll"><table><thead><tr><th>{t("Дата")}</th><th>{t("Тест")}</th><th>{t("Результат")}</th></tr></thead><tbody>{selectedAthleteHistory.map((row, i) => <tr key={row.eventId + row.date + i}><td>{dateLabel(row.date)}</td><td>{category(row.definitionId)}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table></div> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>}
         <details className="card"><summary>{t("Изменить спортсмена")}</summary>
           <label>{t("Спортсмен")}<select value={editAthleteId} onChange={e => setEditAthleteId(e.target.value)}><option value="">{t("Выбери спортсмена")}</option>{[...activeAthletes, ...inactiveAthletes].map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label>
           {athleteToEdit && <ActionForm key={athleteToEdit.id} disabled={busy} label={t("Сохранить изменения")} onSubmit={f => command('UPDATE_ATHLETE', { id: athleteToEdit.id, expected_revision: athleteToEdit.revision, first_name: field(f, 'first'), last_name: field(f, 'last'), sex: field(f, 'sex') || null })}>
@@ -253,7 +258,17 @@ function ClubPortal() {
         <h2>{t("Тесты")}</h2>
         <div className="cards"><section className="card">
           <h3>{t("Контрольные тесты")}</h3>
-          <ul>{sortedDefinitions.map(d => <li key={d.id}>{category(d.id)}</li>)}</ul>
+          <ul className="test-catalog">{sortedDefinitions.map(d => <li key={d.id}><span>{category(d.id)}</span><button className="danger" disabled={busy} onClick={async () => {
+            if (!db || !clubId || !window.confirm(t("Удалить этот тест из каталога? Его результаты останутся в журнале."))) return;
+            setBusy(true); setError('');
+            try {
+              const { error: archiveError } = await db.rpc('archive_test_definition', { p_club: clubId, p_definition: d.id, p_reason: 'Удаление теста из каталога по запросу администратора или тренера' });
+              if (archiveError) throw new Error(archiveError.message);
+              const [updatedBase, updatedHistory] = await Promise.all([fetchBase(db, clubId), fetchHistory(db, clubId)]);
+              setBase(updatedBase); setHistorySource(updatedHistory); setMessage("Тест удалён из каталога.");
+            } catch (err) { setError(friendlyError(err)); }
+            finally { setBusy(false); }
+          }}>{t("Удалить")}</button></li>)}</ul>
           <details><summary>{t("Добавить тест")}</summary>
             <ActionForm disabled={busy} label={t("Добавить тест")} onSubmit={f => {
               const discipline = field(f, 'discipline'), triathlon = discipline === 'TRIATHLON';
