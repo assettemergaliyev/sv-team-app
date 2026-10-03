@@ -2,12 +2,18 @@
 
 Test project: `sv-team-app-dev`, ref `qchbyyipfblhrpjtrqfr`, organization SV Team, region Frankfurt (`eu-central-1`). PostgreSQL 17.11 verified. Existing inactive SV Tracker was not changed. Creation cost returned by Supabase: USD 0/month; this is not a guarantee about future usage or plan changes.
 
-Applied migrations:
+Applied migrations (in order; matches remote Supabase history):
 
-1. `20261001190100_initial_schema_and_read_access.sql`: 21 application tables plus existing managed `auth.users`, composite tenant/event foreign keys, duration constraints, date-based private athlete data, membership overlap constraint, RLS and security-invoker leaderboard.
-2. `20261001190802_audited_sports_commands.sql`: checked transactional write commands, revision checks, request idempotency, append-only audit by restricted command execution, FK indexes. Function bodies were verified against the remote migration history.
+1. `20261001190100_initial_schema_and_read_access.sql`: 21 application tables plus managed `auth.users`, tenant/event foreign keys, constraints, private athlete data, RLS and security-invoker leaderboard.
+2. `20261001190802_audited_sports_commands.sql`: checked transactional write commands, revisions, idempotency, append-only audit and FK indexes.
+3. `20261002081734_single_session_result.sql`: one current result per athlete/session, result correction and participant removal.
+4. `20261002092346_optional_athlete_surname.sql`: allows athletes whose surname is not yet known.
+5. `20261003094752_triathlon_result_segments.sql`: atomic triathlon total/stage saves and audit history.
+6. `20261003094806_import_triathlon_history.sql`: migration marker for the corrected history import.
+7. `20261003094944_import_triathlon_history_reconciled.sql`: imports historic triathlon totals and identifiable splits.
+8. `20261003101524_map_cancelled_swim_to_run.sql`: records 2.5 km running as the 2021-05-02 replacement for the cancelled swim, and 5 km as the run stage.
 
-Migration filenames were originally created by Supabase CLI 2.119.0 with `migration new`, then aligned to the version IDs returned by remote migration history. Apply the migrations in order. `sql/*_candidate.sql` are working copies of the two applied migrations, not extra migrations to run.
+Migration filenames use the version IDs returned by remote history. Apply files in order on a fresh project. `sql/*_candidate.sql` are working copies, not additional migrations to run.
 
 ## Security boundary
 
