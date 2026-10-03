@@ -1,6 +1,11 @@
 export type Locale = "ru" | "kk" | "en";
 export const translations: Record<string, { en: string; kk: string }> = {
   "Активные спортсмены": { en: "Active athletes", kk: "Белсенді спортшылар" },
+  "История стартов": { en: "Event history", kk: "Старттар тарихы" },
+  "Закрыть": { en: "Close", kk: "Жабу" },
+  "Удалить": { en: "Delete", kk: "Жою" },
+  "Удалить этот тест из каталога? Его результаты останутся в журнале.": { en: "Remove this test from the catalog? Its results will remain in the audit history.", kk: "Бұл тесті каталогтан алып тастау керек пе? Нәтижелері журналда қалады." },
+  "Тест удалён из каталога.": { en: "Test removed from the catalog.", kk: "Тест каталогтан жойылды." },
   "Активных спортсменов нет.": { en: "There are no active athletes.", kk: "Белсенді спортшылар жоқ." },
   "Архивные сессии": { en: "Previous sessions", kk: "Алдыңғы сессиялар" },
   "Все": { en: "All", kk: "Барлығы" },
