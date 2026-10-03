@@ -6,6 +6,7 @@ import { LanguageProvider, LanguagePicker, useLanguage } from '@/components/lang
 import { browserDatabase } from '@/lib/supabase';
 import { allRows, emptyBase, emptyEvent, friendlyError, localSessionISO, type BaseData, type EventData, type Club, type Row } from '@/lib/data';
 import { maskTime, parseTime, formatTime, dateLabel } from '@/lib/time';
+import { bestHistoryPerDefinition, buildHistoryResults, denseRank, type HistoryResult, type HistorySource } from '@/lib/history';
 
 // Typographic adaptation of the club shirt; replace with the official vector when available.
 function Brand() {
@@ -39,6 +40,13 @@ function ClubPortal() {
   const [checking, setChecking] = useState(true), [email, setEmail] = useState('');
   const [clubs, setClubs] = useState<Club[]>([]), [clubId, setClubId] = useState('');
   const [base, setBase] = useState<BaseData>(emptyBase), [eventId, setEventId] = useState(''), [detail, setDetail] = useState<EventData>(emptyEvent);
+  const [historySource, setHistorySource] = useState<HistorySource>({ sessions: [], participants: [], entries: [], attempts: [] });
+  const [ratingSelection, setRatingSelection] = useState('__ALL_HISTORY__');
+  const [historyDiscipline, setHistoryDiscipline] = useState('');
+  const [historyDistance, setHistoryDistance] = useState('');
+  const [historySex, setHistorySex] = useState('');
+  const [historyType, setHistoryType] = useState('');
+  const [editAthleteId, setEditAthleteId] = useState('');
   const [tab, setTab] = useState<'events' | 'athletes' | 'catalog' | 'rating'>('rating');
   const [newTestDiscipline, setNewTestDiscipline] = useState('SWIMMING');
   const [sessionId, setSessionId] = useState(''), [saving, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
@@ -91,9 +99,18 @@ function ClubPortal() {
     ]);
     return { athletes, definitions, events };
   }, []);
+  const fetchHistory = useCallback(async (client: SupabaseClient<Database>, id: string): Promise<HistorySource> => {
+    const [sessions, participants, entries, attempts] = await Promise.all([
+      allRows((a, b) => client.from('test_sessions').select('id,event_id,scheduled_on,status').eq('club_id', id).order('scheduled_on', { ascending: false }).range(a, b)),
+      allRows((a, b) => client.from('event_participants').select('id,athlete_id').eq('club_id', id).range(a, b)),
+      allRows((a, b) => client.from('session_participants').select('id,session_id,event_participant_id,removed_at').eq('club_id', id).is('removed_at', null).range(a, b)),
+      allRows((a, b) => client.from('attempts').select('session_participant_id,time_cs,status,is_current').eq('club_id', id).eq('is_current', true).eq('status', 'FINISHED').range(a, b)),
+    ]);
+    return { sessions, participants, entries, attempts };
+  }, []);
   const fetchEvent = useCallback(async (client: SupabaseClient<Database>, id: string, selected: string) => {
     const [sessions, participants, entries, ranks] = await Promise.all([
-      allRows((a, b) => client.from('test_sessions').select('*').eq('club_id', id).eq('event_id', selected).order('scheduled_on').order('scheduled_at').order('id').range(a, b)),
+      allRows((a, b) => client.from('test_sessions').select('*').eq('club_id', id).eq('event_id', selected).order('scheduled_on', { ascending: false }).order('scheduled_at', { ascending: false }).order('id').range(a, b)),
       allRows((a, b) => client.from('event_participants').select('*').eq('club_id', id).eq('event_id', selected).order('id').range(a, b)),
       allRows((a, b) => client.from('session_participants').select('*').eq('club_id', id).eq('event_id', selected).order('id').range(a, b)),
       allRows((a, b) => client.from('event_leaderboard').select('*').eq('club_id', id).eq('event_id', selected).order('place').order('athlete_id').range(a, b)),
@@ -111,10 +128,10 @@ function ClubPortal() {
     return { sessions, participants, entries, attempts, segments, ranks };
   }, []);
   useEffect(() => {
-    let current = true; setBase(emptyBase); setDetail(emptyEvent); setEventId(''); setSessionId(''); setBaseLoading(!!(db && clubId));
-    if (db && clubId) void fetchBase(db, clubId).then(b => { if (current) { setBase(b); setEventId(b.events[0]?.id ?? ''); } }).catch(e => { if (current) setError(friendlyError(e)); }).finally(() => { if (current) setBaseLoading(false); });
+    let current = true; setBase(emptyBase); setDetail(emptyEvent); setHistorySource({ sessions: [], participants: [], entries: [], attempts: [] }); setEventId(''); setRatingSelection('__ALL_HISTORY__'); setSessionId(''); setBaseLoading(!!(db && clubId));
+    if (db && clubId) void Promise.all([fetchBase(db, clubId), fetchHistory(db, clubId)]).then(([b, h]) => { if (current) { setBase(b); setHistorySource(h); setEventId(b.events[0]?.id ?? ''); } }).catch(e => { if (current) setError(friendlyError(e)); }).finally(() => { if (current) setBaseLoading(false); });
     return () => { current = false; };
-  }, [db, clubId, fetchBase]);
+  }, [db, clubId, fetchBase, fetchHistory]);
   useEffect(() => {
     let current = true; setDetail(emptyEvent); setSessionId(''); setEventLoading(!!(db && clubId && eventId));
     if (db && clubId && eventId) void fetchEvent(db, clubId, eventId).then(d => { if (current) { setDetail(d); setSessionId(d.sessions.find(s => s.status !== 'CANCELLED')?.id ?? ''); } }).catch(e => { if (current) setError(friendlyError(e)); }).finally(() => { if (current) setEventLoading(false); });
@@ -135,7 +152,9 @@ function ClubPortal() {
       }
       requests.current.delete(key); setMessage("Сохранено.");
       try {
-        setBase(await fetchBase(db, clubId));
+        const [updatedBase, updatedHistory] = await Promise.all([fetchBase(db, clubId), fetchHistory(db, clubId)]);
+        setBase(updatedBase);
+        setHistorySource(updatedHistory);
         if (eventId) setDetail(await fetchEvent(db, clubId, eventId));
         const created = result as { id?: string } | null;
         if (action === 'CREATE_EVENT' && created?.id) { setEventId(created.id); setTab('events'); }
@@ -153,13 +172,60 @@ function ClubPortal() {
     finally { lock.current = false; setBusy(false); }
   }
   const athleteName = (id: string | null) => { const a = base.athletes.find(a => a.id === id); return a ? [a.first_name, a.last_name].filter(Boolean).join(' ') : t("Спортсмен"); };
-  const category = (id: string) => { const d = base.definitions.find(d => d.id === id); return d ? `${d.discipline === 'SWIMMING' ? t("Плавание") : d.discipline === 'RUNNING' ? t("Бег") : d.discipline === 'TRIATHLON' ? t("Триатлон") : d.discipline} · ${d.discipline === 'TRIATHLON' ? `${(d.distance_m / 1000).toLocaleString(locale)} ${t("км")}` : `${d.distance_m} ${t("м")}`}${d.stroke_code === 'FREESTYLE' ? t(" · Кроль") : d.stroke_code === 'BREASTSTROKE' ? t(" · Брасс") : d.stroke_code === 'BACKSTROKE' ? t(" · На спине") : d.stroke_code === 'BUTTERFLY' ? t(" · Баттерфляй") : ''}${d.discipline === 'TRIATHLON' ? ` · ${d.format_code === 'OLYMPIC' ? t('Олимпийская') : t('Спринт')}` : d.format_code === 'KICK_ONLY' ? t(' · Только ноги') : ''}${d.environment_code === 'UNSPECIFIED' ? t(' · Условия не указаны') : d.environment_code === 'INDOOR_TRACK' ? t(' · Манеж') : ''}` : t("Контрольный тест"); };
+  const category = (id: string) => { const d = base.definitions.find(d => d.id === id); return d ? `${d.discipline === 'SWIMMING' ? t("Плавание") : d.discipline === 'RUNNING' ? t("Бег") : d.discipline === 'TRIATHLON' ? t("Триатлон") : d.discipline} · ${d.discipline === 'TRIATHLON' ? `${(d.distance_m / 1000).toLocaleString(locale)} ${t("км")}` : `${d.distance_m} ${t("м")}`}${d.stroke_code === 'FREESTYLE' ? t(" · Кроль") : d.stroke_code === 'BREASTSTROKE' ? t(" · Брасс") : d.stroke_code === 'BACKSTROKE' ? t(" · На спине") : d.stroke_code === 'BUTTERFLY' ? t(" · Баттерфляй") : ''}${d.discipline === 'TRIATHLON' ? ` · ${d.format_code === 'OLYMPIC' ? t('Олимпийская') : t('Спринт')}` : d.format_code === 'KICK_ONLY' ? t(' · Только ноги') : ''}` : t("Контрольный тест"); };
   const linkedAthlete = base.athletes.find(a => a.id === accountLinks.find(l => l.club_id === clubId && l.user_id === userId)?.athlete_id);
   const identity = club?.role === 'ADMIN' ? t('Администратор') : club?.role === 'COACH' ? (profileName ? `${profileName} · ${t('Тренер')}` : t('Тренер')) : linkedAthlete ? [linkedAthlete.first_name, linkedAthlete.last_name].filter(Boolean).join(' ') : profileName || t('Спортсмен');
   const statusAction = (action: string, id: string, revision: number) => command(action, { id, expected_revision: revision });
   const visibleTab = staff ? tab : 'rating';
   const activeEntries = detail.entries.filter(sp => !sp.removed_at);
   const registeredAthletes = new Set(activeEntries.filter(sp => sp.session_id === sessionId).map(sp => detail.participants.find(p => p.id === sp.event_participant_id)?.athlete_id));
+  const eventStartDate = (id: string) => historySource.sessions.filter(s => s.event_id === id && s.status === 'PUBLISHED').map(s => s.scheduled_on).sort().at(-1) ?? '';
+  const eventLabel = (item: Row<'test_events'>) => `${eventStartDate(item.id) ? dateLabel(eventStartDate(item.id)) : ''}${eventStartDate(item.id) ? ' — ' : ''}${category(item.definition_id)}`;
+  const sortedEvents = [...base.events].sort((a, b) => eventStartDate(b.id).localeCompare(eventStartDate(a.id)) || a.id.localeCompare(b.id));
+  const disciplineLabel = (code: string) => t(code === 'SWIMMING' ? 'Плавание' : code === 'RUNNING' ? 'Бег' : code === 'TRIATHLON' ? 'Триатлон' : code);
+  const sortedDefinitions = [...base.definitions].sort((a, b) => disciplineLabel(a.discipline).localeCompare(disciplineLabel(b.discipline), locale) || Number(a.distance_m) - Number(b.distance_m) || category(a.id).localeCompare(category(b.id), locale));
+  const historicalAttempts = buildHistoryResults(historySource, base.events);
+  const historyResults = bestHistoryPerDefinition(historicalAttempts);
+  const athleteById = new Map(base.athletes.map(a => [a.id, a]));
+  const definitionsById = new Map(base.definitions.map(d => [d.id, d]));
+  const groupMap = new Map<string, { key: string; date: string; discipline: string; distance: number; eventIds: string[] }>();
+  for (const item of base.events) {
+    const date = eventStartDate(item.id), definition = definitionsById.get(item.definition_id);
+    if (!date || !definition) continue;
+    const key = `${date}|${definition.discipline}|${Number(definition.distance_m)}`;
+    const group = groupMap.get(key) ?? { key, date, discipline: definition.discipline, distance: Number(definition.distance_m), eventIds: [] };
+    if (!group.eventIds.includes(item.id)) group.eventIds.push(item.id);
+    groupMap.set(key, group);
+  }
+  const ratingGroups = [...groupMap.values()].sort((a, b) => b.date.localeCompare(a.date) || a.discipline.localeCompare(b.discipline) || a.distance - b.distance);
+  const selectedRatingGroup = ratingGroups.find(g => g.key === ratingSelection);
+  const rankRows = (rows: HistoryResult[]) => denseRank(rows).map(row => ({ ...row, athlete: athleteById.get(row.athleteId) })).sort((a, b) => a.place - b.place || `${a.athlete?.last_name ?? ''} ${a.athlete?.first_name ?? ''}`.localeCompare(`${b.athlete?.last_name ?? ''} ${b.athlete?.first_name ?? ''}`, locale));
+  const historyOptions = historyResults.map(row => ({ row, athlete: athleteById.get(row.athleteId), definition: definitionsById.get(row.definitionId) })).filter((x): x is { row: HistoryResult; athlete: NonNullable<typeof x.athlete>; definition: NonNullable<typeof x.definition> } => !!x.athlete && !!x.definition);
+  const candidateHistory = historyOptions.filter(({ athlete, definition }) =>
+    (!historyDiscipline || definition.discipline === historyDiscipline) &&
+    (!historyDistance || Number(definition.distance_m) === Number(historyDistance)) &&
+    (!historySex || athlete.sex === historySex));
+  const historyTypeOptions = [...new Set(candidateHistory.map(x => x.definition.id))].sort((a, b) => category(a).localeCompare(category(b), locale));
+  const filteredHistory = candidateHistory.filter(({ definition }) => !historyType || definition.id === historyType);
+  const historyDefinitionIds = [...new Set(filteredHistory.map(x => x.definition.id))].sort((a, b) => category(a).localeCompare(category(b), locale));
+  const historicalTables = historyDefinitionIds.map(definitionId => {
+    const definition = definitionsById.get(definitionId)!;
+    const rows = rankRows(filteredHistory.filter(x => x.definition.id === definitionId).map(x => x.row));
+    return { definitionId, definition, rows };
+  });
+  const eventGroupTables = selectedRatingGroup ? [...new Set(selectedRatingGroup.eventIds.map(id => base.events.find(e => e.id === id)?.definition_id).filter((id): id is string => !!id))]
+    .sort((a, b) => category(a).localeCompare(category(b), locale)).map(definitionId => {
+      const definition = definitionsById.get(definitionId)!;
+      const rows = rankRows(bestHistoryPerDefinition(historicalAttempts.filter(row => selectedRatingGroup.eventIds.includes(row.eventId) && row.definitionId === definitionId)));
+      return { definitionId, definition, rows };
+    }) : [];
+  const disciplineOptions = [...new Set(base.definitions.map(d => d.discipline))].sort((a, b) => t(a === 'SWIMMING' ? 'Плавание' : a === 'RUNNING' ? 'Бег' : a === 'TRIATHLON' ? 'Триатлон' : a).localeCompare(t(b === 'SWIMMING' ? 'Плавание' : b === 'RUNNING' ? 'Бег' : b === 'TRIATHLON' ? 'Триатлон' : b), locale));
+  const distanceOptions = [...new Set(base.definitions.filter(d => !historyDiscipline || d.discipline === historyDiscipline).map(d => Number(d.distance_m)))].sort((a, b) => a - b);
+  const sexOptions = [...new Set(base.athletes.map(a => a.sex).filter((s): s is string => s === 'M' || s === 'F'))];
+  const bySurname = (a: Row<'athletes'>, b: Row<'athletes'>) => a.last_name.localeCompare(b.last_name, locale) || a.first_name.localeCompare(b.first_name, locale);
+  const activeAthletes = base.athletes.filter(a => a.sport_status === 'ACTIVE').sort(bySurname);
+  const inactiveAthletes = base.athletes.filter(a => a.sport_status !== 'ACTIVE').sort(bySurname);
+  const athleteToEdit = base.athletes.find(a => a.id === editAthleteId);
   if (checking) return <main className="login"><header><div className="header-toolbar"><Brand /><LanguagePicker /></div><h1>{t("Проверяем вход…")}</h1></header></main>;
   if (!email) return <main className="login"><header><div className="header-toolbar"><Brand /><LanguagePicker /></div><h1>{t("Результаты твоей команды")}</h1><p>{t("Войди в аккаунт клуба.")}</p></header><div className="body"><form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><label>{t("Пароль")}<input name="password" type="password" autoComplete="current-password" required disabled={busy} /></label><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button></form>{error && <p className="notice error" role="alert">{t(error)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
   return <main><header><div className="header-toolbar"><Brand /><div className="header-actions"><LanguagePicker /><button className="icon-button" aria-label={t("Выйти")} title={t("Выйти")} disabled={busy} onClick={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 4H4v16h5M14 8l4 4-4 4M8 12h10" /></svg></button></div></div><h1 className="portal-heading">{club ? (staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")) : t("Нет доступа к клубу")}</h1><small className="account-identity">{identity}</small></header><div className="body">
@@ -167,12 +233,27 @@ function ClubPortal() {
       {clubs.length > 1 && <label>{t("Клуб")}<select value={clubId} disabled={busy} onChange={e => setClubId(e.target.value)}>{clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
       <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button></>}</nav>
       <div className="working" role="status" aria-live="polite">{busy ? t("Сохраняем…") : t(message)}</div>{error && <p className="notice error" role="alert">{t(error)}</p>}
-      {visibleTab === 'athletes' && staff && <><h2>{t("Спортсмены клуба")}</h2><ul className="list">{base.athletes.map(a => <li key={a.id}><div className="participant-heading"><strong>{[a.first_name, a.last_name].filter(Boolean).join(' ')}</strong><span className="pill">{a.sport_status === 'ACTIVE' ? t("Активен") : t("Неактивен")}</span></div><details><summary>{t("Изменить")}</summary><ActionForm disabled={busy} label={t("Сохранить изменения")} onSubmit={f => command('UPDATE_ATHLETE', { id: a.id, expected_revision: a.revision, first_name: field(f, 'first'), last_name: field(f, 'last') })}><div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} defaultValue={a.first_name} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} defaultValue={a.last_name} /></label></div><p className="muted">{t("Фамилию можно добавить позже.")}</p></ActionForm></details></li>)}</ul>{!base.athletes.length && <p className="empty">{t("Спортсменов пока нет. Добавь первого участника.")}</p>}<details className="card"><summary>{t("Добавить спортсмена")}</summary><ActionForm disabled={busy} label={t("Добавить")} onSubmit={f => command('CREATE_ATHLETE', { first_name: field(f, 'first'), last_name: field(f, 'last'), birth_date: field(f, 'birth') || null, sex: field(f, 'sex') || null })}><div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} /></label></div><div className="row"><label>{t("Дата рождения")}<input name="birth" type="date" /></label><label>{t("Пол")}<select name="sex"><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label></div><p className="muted">{t("Фамилию можно добавить позже.")} {t("Дата рождения доступна тренерам и самому спортсмену.")}</p></ActionForm></details></>}
+      {visibleTab === 'athletes' && staff && <>
+        <h2>{t("Спортсмены клуба")}</h2>
+        <h3>{t("Активные спортсмены")}</h3>
+        <ul className="list">{activeAthletes.map(a => <li key={a.id}><strong>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</strong></li>)}</ul>
+        {!activeAthletes.length && <p className="empty">{t("Активных спортсменов нет.")}</p>}
+        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><span>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</span></li>)}</ul></>}
+        <details className="card"><summary>{t("Изменить спортсмена")}</summary>
+          <label>{t("Спортсмен")}<select value={editAthleteId} onChange={e => setEditAthleteId(e.target.value)}><option value="">{t("Выбери спортсмена")}</option>{[...activeAthletes, ...inactiveAthletes].map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label>
+          {athleteToEdit && <ActionForm key={athleteToEdit.id} disabled={busy} label={t("Сохранить изменения")} onSubmit={f => command('UPDATE_ATHLETE', { id: athleteToEdit.id, expected_revision: athleteToEdit.revision, first_name: field(f, 'first'), last_name: field(f, 'last'), sex: field(f, 'sex') || null })}>
+            <div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} defaultValue={athleteToEdit.first_name} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} defaultValue={athleteToEdit.last_name} /></label></div>
+            <label>{t("Пол")}<select name="sex" defaultValue={athleteToEdit.sex === 'M' || athleteToEdit.sex === 'F' ? athleteToEdit.sex : ''}><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label>
+            <p className="muted">{t("Фамилию можно добавить позже.")}</p>
+          </ActionForm>}
+        </details>
+        <details className="card"><summary>{t("Добавить спортсмена")}</summary><ActionForm disabled={busy} label={t("Добавить")} onSubmit={f => command('CREATE_ATHLETE', { first_name: field(f, 'first'), last_name: field(f, 'last'), birth_date: field(f, 'birth') || null, sex: field(f, 'sex') || null })}><div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} /></label></div><div className="row"><label>{t("Дата рождения")}<input name="birth" type="date" /></label><label>{t("Пол")}<select name="sex"><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label></div><p className="muted">{t("Фамилию можно добавить позже.")} {t("Дата рождения доступна тренерам и самому спортсмену.")}</p></ActionForm></details>
+      </>}
       {visibleTab === 'catalog' && staff && <>
         <h2>{t("Тесты")}</h2>
         <div className="cards"><section className="card">
           <h3>{t("Контрольные тесты")}</h3>
-          <ul>{base.definitions.map(d => <li key={d.id}>{category(d.id)}</li>)}</ul>
+          <ul>{sortedDefinitions.map(d => <li key={d.id}>{category(d.id)}</li>)}</ul>
           <details><summary>{t("Добавить тест")}</summary>
             <ActionForm disabled={busy} label={t("Добавить тест")} onSubmit={f => {
               const discipline = field(f, 'discipline'), triathlon = discipline === 'TRIATHLON';
@@ -200,12 +281,33 @@ function ClubPortal() {
           </details>
         </section></div>
       </>}
-      {(visibleTab === 'events' || visibleTab === 'rating') && <><label>{t("Выбрать старт")}<select value={eventId} disabled={busy} onChange={e => setEventId(e.target.value)}><option value="">{t("Выбери старт")}</option>{base.events.map(e => <option key={e.id} value={e.id}>{e.title} — {e.lifecycle === 'CLOSED' ? t("закрыт") : t("открыт")}</option>)}</select></label></>}
-      {visibleTab === 'rating' && <><h2>{t("Общий рейтинг")}</h2>{!event ? <p className="empty">{t("Выбери старт для просмотра результатов.")}</p> : <section className="card"><h3>{event.title}</h3><p>{category(event.definition_id)}</p>{detail.ranks.length ? <table><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Результат")}</th></tr></thead><tbody>{detail.ranks.map(r => <tr key={r.athlete_id} className={r.athlete_id === linkedAthlete?.id ? 'own-result' : ''}><td>{r.place}</td><td>{athleteName(r.athlete_id)}</td><td className="num">{formatTime(r.best_time_cs)}</td></tr>)}</tbody></table> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}<p className="muted">{t("Лучший результат каждого спортсмена среди опубликованных сессий этого старта.")}</p>{!staff && <><h3>{t("Мои результаты")}</h3>{activeEntries.filter(sp => detail.participants.find(ep => ep.id === sp.event_participant_id)?.athlete_id === linkedAthlete?.id).map(sp => { const ownSession = detail.sessions.find(x => x.id === sp.session_id); const result = detail.attempts.find(a => a.session_participant_id === sp.id && a.is_current); return ownSession?.status === 'PUBLISHED' && result?.time_cs ? <p key={sp.id}>{dateLabel(ownSession.scheduled_on)} · {ownSession.label}: <strong className="num">{formatTime(result.time_cs)}</strong></p> : null; })}</>}</section>}</>}
+      {visibleTab === 'events' && <label>{t("Выбрать старт")}<select value={eventId} disabled={busy} onChange={e => setEventId(e.target.value)}><option value="">{t("Выбери старт")}</option>{sortedEvents.map(e => <option key={e.id} value={e.id}>{eventLabel(e)}</option>)}</select></label>}
+      {visibleTab === 'rating' && <>
+        <label>{t("Выбрать старт")}<select value={ratingSelection} disabled={busy || baseLoading} onChange={e => setRatingSelection(e.target.value)}>
+          <option value="__ALL_HISTORY__">{t("Результаты за всю историю")}</option>
+          {ratingGroups.map(group => <option key={group.key} value={group.key}>{dateLabel(group.date)} — {t(group.discipline === 'SWIMMING' ? 'Плавание' : group.discipline === 'RUNNING' ? 'Бег' : group.discipline === 'TRIATHLON' ? 'Триатлон' : group.discipline)} · {group.discipline === 'TRIATHLON' ? group.distance / 1000 : group.distance} {group.discipline === 'TRIATHLON' ? t('км') : t('м')}</option>)}
+        </select></label>
+        <h2>{t("Общий рейтинг")}</h2>
+        {ratingSelection === '__ALL_HISTORY__' ? <>
+          <section className="history-filters card"><h3>{t("Фильтры рейтинга")}</h3>
+            <div className="row">
+              <label>{t("Дисциплина")}<select value={historyDiscipline} onChange={e => { setHistoryDiscipline(e.target.value); setHistoryDistance(''); setHistoryType(''); }}><option value="">{t("Все дисциплины")}</option>{disciplineOptions.map(d => <option key={d} value={d}>{t(d === 'SWIMMING' ? 'Плавание' : d === 'RUNNING' ? 'Бег' : d === 'TRIATHLON' ? 'Триатлон' : d)}</option>)}</select></label>
+              <label>{t(historyDiscipline === 'TRIATHLON' ? "Дистанция, км" : "Дистанция, м")}<select value={historyDistance} onChange={e => { setHistoryDistance(e.target.value); setHistoryType(''); }}><option value="">{t("Все дистанции")}</option>{distanceOptions.map(d => <option key={d} value={String(d)}>{historyDiscipline === 'TRIATHLON' ? d / 1000 : d} {historyDiscipline === 'TRIATHLON' ? t("км") : t("м")}</option>)}</select></label>
+              <label>{t("Пол")}<select value={historySex} onChange={e => setHistorySex(e.target.value)}><option value="">{t("Все")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label>
+              <label>{t("Тип")}<select value={historyType} onChange={e => setHistoryType(e.target.value)}><option value="">{t("Все типы")}</option>{historyTypeOptions.map(id => <option key={id} value={id}>{category(id)}</option>)}</select></label>
+            </div>
+          </section>
+          {historicalTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Лучший результат")}</th><th>{t("Дата")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td>{[row.athlete?.last_name, row.athlete?.first_name].filter(Boolean).join(' ')}</td><td className="num">{formatTime(row.timeCs)}</td><td>{dateLabel(row.date)}</td></tr>)}</tbody></table> : <p className="empty">{t("Результатов пока нет.")}</p>}</section>)}
+          {!historicalTables.length && <p className="empty">{t("По этим фильтрам результатов пока нет.")}</p>}
+        </> : selectedRatingGroup ? <>
+          {eventGroupTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Результат")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td>{[row.athlete?.last_name, row.athlete?.first_name].filter(Boolean).join(' ')}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>)}
+          {!eventGroupTables.length && <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}
+        </> : <p className="empty">{t("Выбери старт для просмотра результатов.")}</p>}
+      </>}
       {visibleTab === 'events' && staff && <><h2>{t("Контрольные старты")}</h2>{!base.events.length && <div className="empty">{t("Стартов пока нет.")}{staff && <p>{t("Сначала добавь тест в разделе «Тесты», затем создай старт.")}</p>}</div>}
-      {staff && <details className="card"><summary>{t("Создать контрольный старт")}</summary><ActionForm disabled={busy || !base.definitions.length} label={t("Создать старт")} onSubmit={f => command('CREATE_EVENT', { title: field(f, 'title'), definition_id: field(f, 'definition') })}><label>{t("Название")}<input name="title" required maxLength={160} placeholder={t("Контрольный старт — октябрь")} /></label><label>{t("Тест")}<select name="definition" required><option value="">{t("Выбери тест")}</option>{base.definitions.map(d => <option key={d.id} value={d.id}>{category(d.id)}</option>)}</select></label></ActionForm></details>}
-      {event && <div className="event-workspace"><p className="hierarchy">{t("Старт → сессия → участники и результаты")}</p><section className="card"><h2>{event.title}</h2><p>{category(event.definition_id)}</p><span className="pill">{labels[event.lifecycle]}</span><p className="muted">{event.lifecycle === 'OPEN' ? t("Общий рейтинг предварительный — сессии ещё могут добавляться.") : t("Старт завершён. Исправления результатов сохраняются в истории.")}</p>{staff && (event.lifecycle === 'OPEN' ? <button disabled={busy} onClick={() => void statusAction('CLOSE_EVENT', event.id, event.revision)}>{t("Закрыть старт")}</button> : <ActionForm disabled={busy} label={t("Повторно открыть старт")} onSubmit={f => command('REOPEN_EVENT', { id: event.id, expected_revision: event.revision, reason: field(f, 'reason') })}><label>{t("Причина повторного открытия")}<input name="reason" required /></label></ActionForm>)}</section>
-      <h2>{t("Сессии старта")}</h2><div className="cards">{detail.sessions.filter(s => s.status !== 'CANCELLED').map(s => <button key={s.id} disabled={busy} className={`card ${sessionId === s.id ? 'selected' : ''}`} onClick={() => setSessionId(s.id)}><strong>{s.label}</strong><p>{dateLabel(s.scheduled_on)}{s.scheduled_at ? ` · ${new Intl.DateTimeFormat(locale, { timeZone: club.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(s.scheduled_at))}` : ''}</p><span className="pill">{labels[s.status]}</span></button>)}</div>
+      {staff && <details className="card"><summary>{t("Создать контрольный старт")}</summary><ActionForm disabled={busy || !base.definitions.length} label={t("Создать старт")} onSubmit={f => command('CREATE_EVENT', { title: field(f, 'title'), definition_id: field(f, 'definition') })}><label>{t("Название")}<input name="title" required maxLength={160} placeholder={t("Контрольный старт — октябрь")} /></label><label>{t("Тест")}<select name="definition" required><option value="">{t("Выбери тест")}</option>{sortedDefinitions.map(d => <option key={d.id} value={d.id}>{category(d.id)}</option>)}</select></label></ActionForm></details>}
+      {event && <div className="event-workspace"><p className="hierarchy">{t("Старт → сессия → участники и результаты")}</p><section className="card"><h2>{eventLabel(event)}</h2><p>{category(event.definition_id)}</p><span className="pill">{labels[event.lifecycle]}</span><p className="muted">{event.lifecycle === 'OPEN' ? t("Общий рейтинг предварительный — сессии ещё могут добавляться.") : t("Старт завершён. Исправления результатов сохраняются в истории.")}</p>{staff && (event.lifecycle === 'OPEN' ? <button disabled={busy} onClick={() => void statusAction('CLOSE_EVENT', event.id, event.revision)}>{t("Закрыть старт")}</button> : <ActionForm disabled={busy} label={t("Повторно открыть старт")} onSubmit={f => command('REOPEN_EVENT', { id: event.id, expected_revision: event.revision, reason: field(f, 'reason') })}><label>{t("Причина повторного открытия")}<input name="reason" required /></label></ActionForm>)}</section>
+      <h2>{t("Сессии старта")}</h2>{(() => { const available = detail.sessions.filter(s => s.status !== 'CANCELLED'); const latest = available[0]; const older = available.slice(1); return <><div className="cards">{latest && <button key={latest.id} disabled={busy} className={`card ${sessionId === latest.id ? 'selected' : ''}`} onClick={() => setSessionId(latest.id)}><strong>{latest.label}</strong><p>{dateLabel(latest.scheduled_on)}{latest.scheduled_at ? ` · ${new Intl.DateTimeFormat(locale, { timeZone: club.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(latest.scheduled_at))}` : ''}</p><span className="pill">{labels[latest.status]}</span></button>}</div>{older.length > 0 && <details className="session-history"><summary>{t("Архивные сессии")} ({older.length})</summary><div className="cards">{older.map(s => <button key={s.id} disabled={busy} className={`card ${sessionId === s.id ? 'selected' : ''}`} onClick={() => setSessionId(s.id)}><strong>{s.label}</strong><p>{dateLabel(s.scheduled_on)}{s.scheduled_at ? ` · ${new Intl.DateTimeFormat(locale, { timeZone: club.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date(s.scheduled_at))}` : ''}</p><span className="pill">{labels[s.status]}</span></button>)}</div></details>}</>; })()}
       {staff && event.lifecycle === 'OPEN' && <details className="card"><summary>{t("Добавить сессию")}</summary><ActionForm disabled={busy} label={t("Создать сессию")} onSubmit={f => command('CREATE_SESSION', { event_id: event.id, label: field(f, 'label'), scheduled_on: field(f, 'date'), scheduled_at: localSessionISO(field(f, 'date'), field(f, 'time'), club.timezone), group_id: null })}><label>{t("Название")}<input name="label" required maxLength={80} placeholder={t("Плавание — утро")} /></label><div className="row"><label>{t("Дата")}<input name="date" type="date" required /></label><label>{t("Время")}<input name="time" type="time" required /></label></div><p className="muted">{t("Время клуба:")} {club.timezone}.</p></ActionForm></details>}
       {session && session.status !== 'CANCELLED' && <section className="card session-workspace"><p className="section-label">{t("Сессия")}</p><h2>{session.label}</h2><p>{labels[session.status]}</p>{activeEntries.filter(sp => sp.session_id === session.id).map(sp => { const ep = detail.participants.find(p => p.id === sp.event_participant_id); const result = detail.attempts.find(a => a.session_participant_id === sp.id && a.is_current); const replacedSwim = event.title.startsWith('Архив · Триатлон · ') && event.title.endsWith('02.05.2021'); return <section className="participant" key={sp.id}><div className="participant-heading"><h3>{athleteName(ep?.athlete_id ?? null)}</h3>{session.status === 'PUBLISHED' || event.lifecycle === 'CLOSED' ? <details className="remove-form"><summary>{t("Убрать")}</summary><ActionForm disabled={busy} label={t("Убрать из сессии")} onSubmit={f => command('REMOVE_PARTICIPANT', { id: sp.id, expected_revision: sp.revision, reason: field(f, 'reason') })}><label>{t("Причина удаления участника")}<input name="reason" required maxLength={500} /></label></ActionForm></details> : <button className="remove-participant" disabled={busy} aria-label={`${t("Убрать из сессии")}: ${athleteName(ep?.athlete_id ?? null)}`} onClick={() => void command('REMOVE_PARTICIPANT', { id: sp.id, expected_revision: sp.revision })}>{t("Убрать")}</button>}</div><ResultEditor key={`${result?.id ?? sp.id}:${result?.revision ?? sp.revision}`} result={result} segments={detail.segments.filter(seg => seg.attempt_id === result?.id)} triathlon={base.definitions.find(d => d.id === event.definition_id)?.discipline === 'TRIATHLON'} replacedSwim={replacedSwim} entryId={sp.id} published={session.status === 'PUBLISHED'} canCreate={session.status === 'DRAFT' && event.lifecycle === 'OPEN'} busy={busy} command={command} /></section>; })}
       {session.status === 'DRAFT' && event.lifecycle === 'OPEN' && <><details className="add-participant"><summary>{t("Добавить участника")}</summary><ActionForm disabled={busy || !base.athletes.some(a => !registeredAthletes.has(a.id))} label={t("Добавить")} onSubmit={f => command('REGISTER_PARTICIPANT', { session_id: session.id, athlete_id: field(f, 'athlete') })}><label>{t("Спортсмен")}<select name="athlete" required><option value="">{t("Выбери спортсмена")}</option>{base.athletes.filter(a => !registeredAthletes.has(a.id)).map(a => <option key={a.id} value={a.id}>{[a.first_name, a.last_name].filter(Boolean).join(' ')}</option>)}</select></label></ActionForm></details><div className="row session-actions"><button className="primary" disabled={busy} onClick={() => void statusAction('PUBLISH_SESSION', session.id, session.revision)}>{t("Опубликовать сессию")}</button><button className="danger" disabled={busy} onClick={() => { if (window.confirm(t("Удалить черновик сессии? Результаты сохранятся для восстановления администратором."))) void statusAction('CANCEL_SESSION', session.id, session.revision); }}>{t("Удалить черновик")}</button></div></>}

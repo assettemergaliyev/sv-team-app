@@ -1,5 +1,13 @@
 # Status — 2026-09-30
 
+## Latest checkpoint — 2026-10-03: historical rankings and roster cleanup
+
+Added an all-time results view with discipline, distance, test type and sex filters. It keeps each athlete's best published time for that test, shows the date, uses dense places for ties, and sorts recent event groups first. Results from the same date, discipline and distance now appear under one start selector; separate test types (for example freestyle and kick-only) keep separate tables. Event details show the newest session first and tuck older sessions into a collapsed archive selector.
+
+The athlete page now lists active athletes alphabetically before a visually muted inactive list, with one central edit form that includes sex. Test definitions sort by translated discipline, distance and type. The source roster sex values were copied into the existing `athletes.sex` field; a single conflicting source value was resolved by majority. Athletes without published participation in 2025–2026 were marked inactive. The public migration stores no roster names, generated athlete IDs, or per-athlete sex values.
+
+Verification: history ranking tests cover best-time selection, publication filtering and dense ties; TypeScript, full app tests and production build pass. Supabase migration applied and verified. Public GitHub/Vercel deployment pending this checkpoint commit.
+
 ## Latest checkpoint — 2026-10-03: triathlon history and deployment repair
 
 Imported 90 triathlon total results and 445 stage records across eight archive starts. For 2021-05-02, the user clarified that 2.5 km running replaced the cancelled swim and 5 km was the RUN stage; all 20 rows are now linked to the corresponding result, with the replacement recorded as a SWIM-stage substitute. The historical import batch is complete (1,999 processed, 0 pending).

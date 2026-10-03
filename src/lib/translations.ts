@@ -1,5 +1,20 @@
 export type Locale = "ru" | "kk" | "en";
 export const translations: Record<string, { en: string; kk: string }> = {
+  "Активные спортсмены": { en: "Active athletes", kk: "Белсенді спортшылар" },
+  "Активных спортсменов нет.": { en: "There are no active athletes.", kk: "Белсенді спортшылар жоқ." },
+  "Архивные сессии": { en: "Previous sessions", kk: "Алдыңғы сессиялар" },
+  "Все": { en: "All", kk: "Барлығы" },
+  "Все дисциплины": { en: "All disciplines", kk: "Барлық спорт түрлері" },
+  "Все дистанции": { en: "All distances", kk: "Барлық қашықтықтар" },
+  "Все типы": { en: "All types", kk: "Барлық түрлері" },
+  "Фильтры рейтинга": { en: "Ranking filters", kk: "Рейтинг сүзгілері" },
+  "Изменить спортсмена": { en: "Edit athlete", kk: "Спортшыны өзгерту" },
+  "Неактивные спортсмены": { en: "Inactive athletes", kk: "Белсенді емес спортшылар" },
+  "Лучший результат": { en: "Best result", kk: "Ең жақсы нәтиже" },
+  "По этим фильтрам результатов пока нет.": { en: "No results match these filters yet.", kk: "Бұл сүзгілер бойынша нәтиже әлі жоқ." },
+  "Результатов пока нет.": { en: "No results yet.", kk: "Нәтижелер әлі жоқ." },
+  "Результаты за всю историю": { en: "All-time results", kk: "Барлық уақыттағы нәтижелер" },
+  "Тип": { en: "Type", kk: "Түрі" },
   "Сохранить изменения": { en: "Save changes", kk: "Өзгерістерді сақтау" },
   "Фамилию можно добавить позже.": { en: "You can add a surname later.", kk: "Тегін кейін қосуға болады." },
   " · Только ноги": { en: " · Kick only", kk: " · Тек аяқпен" },
@@ -137,6 +152,7 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "en": "Distance, m",
     "kk": "Қашықтық, м"
   },
+  "Дистанция, км": { en: "Distance, km", kk: "Қашықтық, км" },
   "Дисциплина": {
     "en": "Discipline",
     "kk": "Спорт түрі"
