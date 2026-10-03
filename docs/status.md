@@ -1,10 +1,10 @@
 # Status — 2026-09-30
 
-## Latest checkpoint — 2026-10-02: application integration
+## Latest checkpoint — 2026-10-03: triathlon history and deployment repair
 
-Configured first real administrator and SV Team club in the separate test project. Added Next.js application with password login, user-token/RLS data access, athlete/test/group creation, events/sessions/attempts, publication, draft cancellation, event closure/reopening and audited corrections of closed-event results. See app-checkpoint.md for scope and limitations.
+Imported 90 triathlon total results and 445 stage records across eight archive starts. For 2021-05-02, the user clarified that 2.5 km running replaced the cancelled swim and 5 km was the RUN stage; all 20 rows are now linked to the corresponding result, with the replacement recorded as a SWIM-stage substitute. The historical import batch is complete (1,999 processed, 0 pending).
 
-Production build, TypeScript and domain tests passed. Browser test exists but was blocked before launch by environment socket restrictions; no verified successful real-user UI flow or mobile screenshot. Hosting and real import remain pending.
+Fixed invalid UTF-8 in `src/components/portal.tsx` that caused the Vercel build failure. The local production build, TypeScript check and app tests pass; a new production deployment from the repaired GitHub commit is building. Browser verification remains unavailable in this environment. See `app-checkpoint.md` and `supabase/README.md` for current details.
 
 ## Current checkpoint — 2026-10-01: database foundation
 
