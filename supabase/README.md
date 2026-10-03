@@ -61,7 +61,7 @@ Birth date uses PostgreSQL DATE, examples/API YYYY-MM-DD, intended UI DD.MM.YYYY
 - Verify Auth administrator access and a disposable athlete flow in the deployed app before teamwide use.
 - Invite generation/acceptance and delivery, Auth signup/anonymous-provider settings, redirect allowlist. Invite-only club membership is enforced by the current DB; Auth registration configuration has not been changed.
 - Further administrative/catalog editing commands (renaming groups, editing unused test definitions, ending membership periods), session metadata edits and historical triathlon source reconciliation. Do not bypass the command API with service_role CRUD.
-- Historical import is loaded to the development club. Twenty running stage source rows remain pending because each athlete has both a 2.5 km and a 5 km run in one Sprint entry.
+- Historical import is loaded to the development club. For the 2021-05-02 Sprint, 2.5 km running replaced the cancelled swim and 5 km is the RUN stage. The former is stored under SWIM as a substituted stage, with the source row retained in the private import ledger.
 - End-to-end REST/Auth session/browser tests and parallel-client stress tests before production.
 
 Source: current Supabase RLS docs via search_docs, changelog index including PostgreSQL minor-upgrade/Data API GRANT changes, checked 2026-10-01. Grant statements are explicit; leaderboard is security_invoker.
