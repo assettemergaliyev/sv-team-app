@@ -17,6 +17,10 @@ function Brand() {
   </div>;
 }
 
+function RatingAthleteName({ firstName, lastName }: { firstName?: string; lastName?: string }) {
+  return <>{lastName && <span className="athlete-last-name">{lastName}</span>}{lastName && firstName ? ' ' : ''}{firstName && <span>{firstName}</span>}</>;
+}
+
 type Command = (action: string, payload: Record<string, Json>) => Promise<boolean>;
 const statusLabels: Record<string, string> = { DRAFT: 'Черновик', PUBLISHED: 'Опубликована', CANCELLED: 'Удалена', OPEN: 'Старт открыт', CLOSED: 'Старт закрыт' };
 const field = (f: FormData, key: string) => String(f.get(key) ?? '').trim();
@@ -54,6 +58,7 @@ function ClubPortal() {
   const [baseLoading, setBaseLoading] = useState(false), [eventLoading, setEventLoading] = useState(false);
   const busy = saving || baseLoading || eventLoading;
   const lock = useRef(false), generation = useRef(0), requests = useRef(new Map<string, string>());
+  const athleteHistoryRef = useRef<HTMLElement | null>(null);
   const club = clubs.find(c => c.id === clubId), staff = club?.role === 'ADMIN' || club?.role === 'COACH';
   const event = base.events.find(e => e.id === eventId), session = detail.sessions.find(s => s.id === sessionId);
 
@@ -205,6 +210,9 @@ function ClubPortal() {
   const historyOptions = historyResults.map(row => ({ row, athlete: athleteById.get(row.athleteId), definition: definitionsById.get(row.definitionId) })).filter((x): x is { row: HistoryResult; athlete: NonNullable<typeof x.athlete>; definition: NonNullable<typeof x.definition> } => !!x.athlete && !!x.definition?.is_active);
   const selectedAthlete = base.athletes.find(a => a.id === selectedAthleteId);
   const selectedAthleteHistory = selectedAthlete ? historicalAttempts.filter(row => row.athleteId === selectedAthlete.id && definitionsById.get(row.definitionId)?.is_active).sort((a, b) => b.date.localeCompare(a.date)) : [];
+  useEffect(() => {
+    if (selectedAthleteId) athleteHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedAthleteId]);
   const candidateHistory = historyOptions.filter(({ athlete, definition }) =>
     (!historyDiscipline || definition.discipline === historyDiscipline) &&
     (!historyDistance || Number(definition.distance_m) === Number(historyDistance)) &&
@@ -239,11 +247,11 @@ function ClubPortal() {
       <div className="working" role="status" aria-live="polite">{busy ? t("Сохраняем…") : t(message)}</div>{error && <p className="notice error" role="alert">{t(error)}</p>}
       {visibleTab === 'athletes' && staff && <>
         <h2>{t("Спортсмены клуба")}</h2>
+        {selectedAthlete && <section ref={athleteHistoryRef} className="card athlete-history"><div className="section-heading"><h3><RatingAthleteName firstName={selectedAthlete.first_name} lastName={selectedAthlete.last_name} /></h3><button type="button" onClick={() => setSelectedAthleteId('')}>{t("Закрыть")}</button></div><h4>{t("История стартов")}</h4>{selectedAthleteHistory.length ? <div className="table-scroll"><table><thead><tr><th>{t("Дата")}</th><th>{t("Тест")}</th><th>{t("Результат")}</th></tr></thead><tbody>{selectedAthleteHistory.map((row, i) => <tr key={row.eventId + row.date + i}><td>{dateLabel(row.date)}</td><td>{category(row.definitionId)}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table></div> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>}
         <h3>{t("Активные спортсмены")}</h3>
-        <ul className="list">{activeAthletes.map(a => <li key={a.id}><button className="athlete-link" onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul>
+        <ul className="list">{activeAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul>
         {!activeAthletes.length && <p className="empty">{t("Активных спортсменов нет.")}</p>}
-        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><button className="athlete-link" onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></>}
-        {selectedAthlete && <section className="card athlete-history"><div className="section-heading"><h3>{[selectedAthlete.last_name, selectedAthlete.first_name].filter(Boolean).join(' ')}</h3><button onClick={() => setSelectedAthleteId('')}>{t("Закрыть")}</button></div><h4>{t("История стартов")}</h4>{selectedAthleteHistory.length ? <div className="table-scroll"><table><thead><tr><th>{t("Дата")}</th><th>{t("Тест")}</th><th>{t("Результат")}</th></tr></thead><tbody>{selectedAthleteHistory.map((row, i) => <tr key={row.eventId + row.date + i}><td>{dateLabel(row.date)}</td><td>{category(row.definitionId)}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table></div> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>}
+        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></>}
         <details className="card"><summary>{t("Изменить спортсмена")}</summary>
           <label>{t("Спортсмен")}<select value={editAthleteId} onChange={e => setEditAthleteId(e.target.value)}><option value="">{t("Выбери спортсмена")}</option>{[...activeAthletes, ...inactiveAthletes].map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label>
           {athleteToEdit && <ActionForm key={athleteToEdit.id} disabled={busy} label={t("Сохранить изменения")} onSubmit={f => command('UPDATE_ATHLETE', { id: athleteToEdit.id, expected_revision: athleteToEdit.revision, first_name: field(f, 'first'), last_name: field(f, 'last'), sex: field(f, 'sex') || null })}>
@@ -312,10 +320,10 @@ function ClubPortal() {
               <label>{t("Тип")}<select value={historyType} onChange={e => setHistoryType(e.target.value)}><option value="">{t("Все типы")}</option>{historyTypeOptions.map(id => <option key={id} value={id}>{category(id)}</option>)}</select></label>
             </div>
           </section>
-          {historicalTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Лучший результат")}</th><th>{t("Дата")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td>{[row.athlete?.last_name, row.athlete?.first_name].filter(Boolean).join(' ')}</td><td className="num">{formatTime(row.timeCs)}</td><td>{dateLabel(row.date)}</td></tr>)}</tbody></table> : <p className="empty">{t("Результатов пока нет.")}</p>}</section>)}
+          {historicalTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table className="rating-table"><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Лучший результат")}</th><th>{t("Дата")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td><RatingAthleteName firstName={row.athlete?.first_name} lastName={row.athlete?.last_name} /></td><td className="num">{formatTime(row.timeCs)}</td><td>{dateLabel(row.date)}</td></tr>)}</tbody></table> : <p className="empty">{t("Результатов пока нет.")}</p>}</section>)}
           {!historicalTables.length && <p className="empty">{t("По этим фильтрам результатов пока нет.")}</p>}
         </> : selectedRatingGroup ? <>
-          {eventGroupTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Результат")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td>{[row.athlete?.last_name, row.athlete?.first_name].filter(Boolean).join(' ')}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>)}
+          {eventGroupTables.map(table => <section className="card" key={table.definitionId}><h3>{category(table.definitionId)}</h3>{table.rows.length ? <table className="rating-table event-rating-table"><thead><tr><th>{t("Место")}</th><th>{t("Спортсмен")}</th><th>{t("Результат")}</th></tr></thead><tbody>{table.rows.map(row => <tr key={row.athleteId} className={row.athleteId === linkedAthlete?.id ? 'own-result' : ''}><td>{row.place}</td><td><RatingAthleteName firstName={row.athlete?.first_name} lastName={row.athlete?.last_name} /></td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>)}
           {!eventGroupTables.length && <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}
         </> : <p className="empty">{t("Выбери старт для просмотра результатов.")}</p>}
       </>}
