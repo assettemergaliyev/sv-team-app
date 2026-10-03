@@ -43,7 +43,7 @@ For an existing locally installed Chrome for Testing binary, the test configurat
 
 ## Next steps
 
-Choose hosting (Vercel remains a candidate), configure its two public Supabase environment variables, then check real administrator login and a disposable session end to end. Historical data import stays separate. Invite delivery/recovery screens, athlete profile/progress pages, catalog editing, cancellation recovery UI, triathlon segment entry and admin role-management UI are still pending. Existing DB operations cover some of those future screens; do not use privileged client writes to bypass them.
+Invite delivery/recovery screens, athlete profile/progress pages, broader catalog editing, cancellation recovery UI and admin role-management UI are still pending. Existing DB operations cover some of those future screens; do not use privileged client writes to bypass them.
 
 The duration input retains the prototype's optional two-digit hours 00–23. This is a UI limitation pending a product rule; the DB stores longer durations in BIGINT hundredths and does not impose that cap. UI labels are currently RU; localization is not complete.
 
@@ -71,6 +71,12 @@ This section supersedes earlier multiple-attempt UI descriptions.
 
 Optional athlete surnames are now represented by an empty string; first names remain required. Staff can edit both names from the Athletes tab. Empty surnames are omitted in athlete labels. Existing athlete sex values are unchanged.
 
-The supplied workbook roster is imported to the club: 167 athlete records total, including the pre-existing admin athlete. `#N/A` aliases were mapped to confirmed roster IDs 143 and 164. Coaches remain athletes in the roster and have the COACH role independently. Historical timed results with resolvable athlete, date, discipline, distance, stroke and time were loaded into closed, published archive sessions grouped by date and test. Conditions are marked unspecified when absent from the workbook. Import is recorded in the private import ledger and audited. 1,451 imported results currently appear through archived event/session views.
+The supplied workbook roster is imported to the club: 167 athlete records total, including the pre-existing admin athlete. `#N/A` aliases were mapped to confirmed roster IDs 143 and 164. Coaches remain athletes in the roster and have the COACH role independently. Historical timed results with resolvable athlete, date, discipline, distance, stroke and time were loaded into closed, published archive sessions grouped by date and test. Conditions are marked unspecified when absent from the workbook. Import is recorded in the private import ledger and audited. Thirteen conflicting athlete/date/test groups were resolved by choosing the first listed result.
 
-Pending review: 13 conflicting athlete/date/test result groups (different times); 535 triathlon stage/composite records. Their raw rows remain in the private import ledger and were not included in the published archive. The source does not reliably distinguish a multi-session event across one date, so archive event grouping is provisional (one archive event per date and test). Browser visual verification unavailable; typecheck and domain tests passed. See docs/status.md.
+Pending review: 20 run split rows from the 2021-05-02 Sprint, where two distances (2.5 km and 5 km) are listed for each athlete. Raw rows remain in the private import ledger. See the next section and docs/status.md. The source does not reliably distinguish a multi-session event across one date, so archive event grouping is provisional (one archive event per date and test).
+
+## Triathlon total and stage history — 2026-10-03
+
+The app stores each triathlon result as one overall time plus optional SWIM, T1, BIKE, T2 and RUN splits. The leaderboard ranks by total time; session result cards show any available stages. Staff can create Sprint and Olympic triathlon tests, enter the total and splits together, and correct them with revision checks and one audit record.
+
+The workbook now contributes 90 overall results in eight archived starts and 425 identifiable stage splits. Ten May 2, 2021 Sprint entries contain three identifiable splits but no swim time and two alternative run distances; the twenty run rows stay pending. One Olympic participant from June 26, 2022 has only an overall time in the workbook. Typecheck, app tests, production build and a rollback-only synthetic database test passed. Browser visual verification remains unavailable due to execution environment restrictions.

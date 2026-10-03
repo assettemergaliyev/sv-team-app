@@ -3,9 +3,9 @@ export type Row<T extends keyof Database['public']['Tables']> = Database['public
 export type Rank = Database['public']['Views']['event_leaderboard']['Row'];
 export type Club = Row<'clubs'> & { role: string };
 export type BaseData = { athletes: Row<'athletes'>[]; definitions: Row<'test_definitions'>[]; events: Row<'test_events'>[] };
-export type EventData = { sessions: Row<'test_sessions'>[]; participants: Row<'event_participants'>[]; entries: Row<'session_participants'>[]; attempts: Row<'attempts'>[]; ranks: Rank[] };
+export type EventData = { sessions: Row<'test_sessions'>[]; participants: Row<'event_participants'>[]; entries: Row<'session_participants'>[]; attempts: Row<'attempts'>[]; segments: Row<'attempt_segments'>[]; ranks: Rank[] };
 export const emptyBase: BaseData = { athletes: [], definitions: [], events: [] };
-export const emptyEvent: EventData = { sessions: [], participants: [], entries: [], attempts: [], ranks: [] };
+export const emptyEvent: EventData = { sessions: [], participants: [], entries: [], attempts: [], segments: [], ranks: [] };
 export async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
   const rows: T[] = [];
   for (let from = 0; ; from += 500) {

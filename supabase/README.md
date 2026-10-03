@@ -34,8 +34,7 @@ Implemented actions:
 | CREATE_EVENT | definition_id, title | ADMIN/COACH |
 | CREATE_SESSION | event_id, scheduled_on, scheduled_at, label, group_id? | ADMIN/COACH |
 | REGISTER_PARTICIPANT | session_id, athlete_id | ADMIN/COACH |
-| SAVE_ATTEMPT (new) | session_participant_id, attempt_no, status, time_cs?, occurred_at? | ADMIN/COACH |
-| SAVE_ATTEMPT (update) | id, expected_revision, status, time_cs?, occurred_at?, reason for published | ADMIN/COACH |
+| SAVE_RESULT | session_participant_id or id, time_cs; optional triathlon segments; expected_revision and reason for correction | ADMIN/COACH |
 | PUBLISH_SESSION / CANCEL_SESSION | id, expected_revision | ADMIN/COACH |
 | RESTORE_SESSION | id, expected_revision, reason | ADMIN |
 | CLOSE_EVENT / REOPEN_EVENT | id, expected_revision; reopen requires reason | ADMIN/COACH |
@@ -45,7 +44,7 @@ Implemented actions:
 | ADD_GROUP_MEMBERSHIP | athlete_id, group_id, valid_from, valid_to? | ADMIN/COACH |
 | SET_STAFF_NOTE | attempt_id, note, expected_revision for existing note | ADMIN/COACH |
 
-SAVE_ATTEMPT cannot move an existing attempt to another participant. Existing published attempts may be corrected in CLOSED events; closed_at/by stay unchanged and the leaderboard recomputes. New participation/attempts require an OPEN event and DRAFT session. Publication rejects empty sessions, missing attempts and DRAFT attempts. Cancellation only affects drafts, preserves attempts, and excludes them from rankings. Closing requires at least one published session and no remaining drafts.
+SAVE_RESULT maintains one current timed result per athlete/session; it cannot move a result to another participant. Existing published results may be corrected in CLOSED events; closed_at/by stay unchanged and the leaderboard recomputes. New participation/results require an OPEN event and DRAFT session. Publication rejects empty sessions and participants without a result. Cancellation only affects drafts, preserves history, and excludes them from rankings. Closing requires at least one published session and no remaining drafts.
 
 Birth date uses PostgreSQL DATE, examples/API YYYY-MM-DD, intended UI DD.MM.YYYY without timezone conversion.
 
@@ -59,17 +58,18 @@ Birth date uses PostgreSQL DATE, examples/API YYYY-MM-DD, intended UI DD.MM.YYYY
 
 ## Still required before real use
 
-- First real club + Auth administrator bootstrap with a verified email; no real accounts or club memberships were seeded.
-- Next.js/TypeScript application scaffold and Auth integration; project currently has standalone prototypes, not a Next.js production app.
+- Verify Auth administrator access and a disposable athlete flow in the deployed app before teamwide use.
 - Invite generation/acceptance and delivery, Auth signup/anonymous-provider settings, redirect allowlist. Invite-only club membership is enforced by the current DB; Auth registration configuration has not been changed.
-- Further administrative/catalog editing commands (renaming groups, editing unused test definitions, ending membership periods), session metadata edits and triathlon segment writes as needed by UI. Current commands cover the first persistent results workflow; do not bypass them with service_role CRUD to add missing features.
-- Authorized admin import implementation, source audit, mappings and reconciliation. No real data imported yet.
+- Further administrative/catalog editing commands (renaming groups, editing unused test definitions, ending membership periods), session metadata edits and historical triathlon source reconciliation. Do not bypass the command API with service_role CRUD.
+- Historical import is loaded to the development club. Twenty running stage source rows remain pending because each athlete has both a 2.5 km and a 5 km run in one Sprint entry.
 - End-to-end REST/Auth session/browser tests and parallel-client stress tests before production.
 
 Source: current Supabase RLS docs via search_docs, changelog index including PostgreSQL minor-upgrade/Data API GRANT changes, checked 2026-10-01. Grant statements are explicit; leaderboard is security_invoker.
 
-## Current result commands (2026-10-02)
+## Current result commands (2026-10-03)
 
 `single_session_result` supersedes multi-attempt writes: `SAVE_RESULT` creates or revises one current timed row for each session participation; `SAVE_ATTEMPT` is rejected. `REMOVE_PARTICIPANT` soft-removes one session entry with expected revision and, for published/closed records, a reason. Retired rows and audit history remain. `attempts.is_current` has a partial unique index; `session_participants.removed_at` excludes removed entries from publication checks, athlete reads and event standings. Existing best timed rows become current without deleting history. UI sends no athlete finish/DNS/DNF status.
 
-Run `tests/read_access.sql`, `tests/commands.sql` and `tests/single_result.sql` against the current schema; each suite uses synthetic BEGIN/ROLLBACK fixtures. Their assertions cover access, tenant boundaries, single-result writes, stale revisions, slower corrections, removal, re-add and published/closed auditing.
+Triathlon `SAVE_RESULT` accepts an optional `segments` array of `{segment_code,time_cs}` objects with unique `SWIM`, `T1`, `BIKE`, `T2`, and `RUN` codes. Overall time remains `attempts.time_cs` and is the leaderboard value. When segments are supplied, they are validated, replaced atomically with the overall time, and included in audit before/after payloads. `attempt_segments` is readable with the same role-aware rules as attempts.
+
+Run `tests/read_access.sql`, `tests/commands.sql`, `tests/single_result.sql`, and `tests/triathlon_segments.sql` against the current schema; each suite uses synthetic BEGIN/ROLLBACK fixtures. Their assertions cover access, tenant boundaries, single-result writes, stale revisions, slower corrections, removal, re-add, published/closed auditing and triathlon split save/correction/validation.

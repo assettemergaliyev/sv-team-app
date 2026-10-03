@@ -534,6 +534,14 @@ export const translations: Record<string, { en: string; kk: string }> = {
 "Сохранить результат": {"en": "Save result", "kk": "Нәтижені сақтау"},
 "Результат уже внесён. Обнови страницу и используй «Изменить».": {"en": "A result already exists. Reload and use Edit.", "kk": "Нәтиже енгізілген. Бетті жаңартып, «Өзгерту» түймесін пайдаланыңыз."},
 "Участник уже убран из сессии. Обнови страницу.": {"en": "The participant is no longer in this session. Reload the page.", "kk": "Қатысушы сессиядан алып тасталған. Бетті жаңартыңыз."},
-"Время должно быть больше нуля.": {"en": "Time must be greater than zero.", "kk": "Уақыт нөлден үлкен болуы керек."}
+"Время должно быть больше нуля.": {"en": "Time must be greater than zero.", "kk": "Уақыт нөлден үлкен болуы керек."},
+"Триатлон": {"en": "Triathlon", "kk": "Триатлон"},
+"км": {"en": "km", "kk": "км"},
+"Олимпийская": {"en": "Olympic", "kk": "Олимпиадалық"},
+"Спринт": {"en": "Sprint", "kk": "Спринт"},
+"Формат триатлона": {"en": "Triathlon format", "kk": "Триатлон форматы"},
+"Этапы триатлона": {"en": "Triathlon stages", "kk": "Триатлон кезеңдері"},
+"Велосипед": {"en": "Cycling", "kk": "Велосипед"},
+"Проверь время этапов: укажи полное время в формате мм:сс.сс или чч:мм:сс.сс.": {"en": "Check each stage time. Enter the full time as mm:ss.hh or hh:mm:ss.hh.", "kk": "Кезең уақытын тексеріңіз. Толық уақытты мм:сс.сс немесе чч:мм:сс.сс пішімінде енгізіңіз."}
 };
 export function translate(text: string, locale: Locale) { return locale === "ru" ? text : translations[text]?.[locale] ?? text; }
