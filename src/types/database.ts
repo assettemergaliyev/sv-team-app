@@ -674,6 +674,7 @@ export type Database = {
           environment_code: string
           format_code: string
           id: string
+          is_active: boolean
           revision: number
           stroke_code: string
           updated_at: string
@@ -688,6 +689,7 @@ export type Database = {
           environment_code: string
           format_code: string
           id?: string
+          is_active?: boolean
           revision?: number
           stroke_code: string
           updated_at?: string
@@ -702,6 +704,7 @@ export type Database = {
           environment_code?: string
           format_code?: string
           id?: string
+          is_active?: boolean
           revision?: number
           stroke_code?: string
           updated_at?: string
@@ -904,6 +907,14 @@ export type Database = {
       }
     }
     Functions: {
+      archive_test_definition: {
+        Args: {
+          p_club: string
+          p_definition: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       sv_command: {
         Args: {
           p_action: string
