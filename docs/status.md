@@ -6,7 +6,7 @@ Added an all-time results view with discipline, distance, test type and sex filt
 
 The athlete page now lists active athletes alphabetically before a visually muted inactive list, with one central edit form that includes sex. Test definitions sort by translated discipline, distance and type. The source roster sex values were copied into the existing `athletes.sex` field; a single conflicting source value was resolved by majority. Athletes without published participation in 2025–2026 were marked inactive. The public migration stores no roster names, generated athlete IDs, or per-athlete sex values.
 
-Verification: history ranking tests cover best-time selection, publication filtering and dense ties; TypeScript, full app tests and production build pass. Supabase migration applied and verified. Public GitHub/Vercel deployment pending this checkpoint commit.
+Verification: history ranking tests cover best-time selection, publication filtering and dense ties; TypeScript, full app tests and production build pass. Supabase updates are applied and verified. Public GitHub commit `efd2b189` deployed to Vercel production; deployment is READY.
 
 ## Latest checkpoint — 2026-10-03: triathlon history and deployment repair
 
