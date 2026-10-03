@@ -61,6 +61,10 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "en": "Running",
     "kk": "Жүгіру"
   },
+  "Бег 2,5 км (вместо плавания)": {
+    "en": "2.5 km run (replaced swimming)",
+    "kk": "2,5 км жүгіру (жүзудің орнына)"
+  },
   "Бег на стадионе": {
     "en": "Track running",
     "kk": "Стадионда жүгіру"
