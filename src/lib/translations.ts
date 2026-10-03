@@ -1,5 +1,10 @@
 export type Locale = "ru" | "kk" | "en";
 export const translations: Record<string, { en: string; kk: string }> = {
+  "Сохранить изменения": { en: "Save changes", kk: "Өзгерістерді сақтау" },
+  "Фамилию можно добавить позже.": { en: "You can add a surname later.", kk: "Тегін кейін қосуға болады." },
+  " · Только ноги": { en: " · Kick only", kk: " · Тек аяқпен" },
+  " · Условия не указаны": { en: " · Conditions unspecified", kk: " · Жағдайлар көрсетілмеген" },
+  " · Манеж": { en: " · Indoor track", kk: " · Манеж" },
   "Черновик": {
     "en": "Draft",
     "kk": "Жоба"

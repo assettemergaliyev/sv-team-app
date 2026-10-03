@@ -41,3 +41,12 @@ Current Next.js app now uses one timed result per athlete/session, with editing 
 ### 2026-10-02 — shirt-inspired branding
 
 Replaced duplicated header titles with a single typographic SV TEAM lockup, TRIATHLON–SWIM and KAZAKHSTAN. White header, teal primary buttons, yellow selection accents, near-black text, and a small colour stripe on login. Palette and wordmark approximate the supplied shirt photograph; no official vector asset is available. Compact language/logout controls and account identity retained. Typecheck, domain tests and production build passed. Browser visual verification remains blocked by the existing Chromium runtime restriction; mobile appearance needs review on the deployed app. No data model or permissions changes.
+
+
+### 2026-10-03 — historical roster and results import
+
+Imported the roster from the supplied workbook into the development club, matching the existing administrator and confirmed aliases for IDs 143 and 164. Added a reversible migration allowing an empty surname, then imported IDs 144 and 152 as first-name-only athletes. Athlete roster now supports editing names.
+
+Loaded 1,451 unambiguous historical timed results into closed, published archive events/sessions. Each result keeps source workbook rows in the private import ledger and has an audit entry. Test definitions retain unspecified course/conditions rather than guessing. Thirteen conflicting athlete/date/test groups and 535 triathlon composite/stage records are preserved as pending raw source records and are not included in rankings. Dates are represented as one archive event per date and test because the source does not reliably identify event/session boundaries. Names, sex and birth dates remain as in the roster source; unknown sex remains UNKNOWN.
+
+The re-runnable import batch is fingerprinted and keyed by source rows. Verification: 167 athletes, 1451 imported archive results, 117 closed published archive events/sessions, and no published session without a result. Full-browser verification remains unavailable.
