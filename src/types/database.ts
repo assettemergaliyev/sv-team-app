@@ -556,6 +556,54 @@ export type Database = {
           },
         ]
       }
+      personal_best_records: {
+        Row: {
+          athlete_id: string
+          club_id: string
+          definition_id: string
+          imported_at: string
+          recorded_on: string
+          source_row: number
+          source_sheet: string
+          time_cs: number
+        }
+        Insert: {
+          athlete_id: string
+          club_id: string
+          definition_id: string
+          imported_at?: string
+          recorded_on: string
+          source_row: number
+          source_sheet: string
+          time_cs: number
+        }
+        Update: {
+          athlete_id?: string
+          club_id?: string
+          definition_id?: string
+          imported_at?: string
+          recorded_on?: string
+          source_row?: number
+          source_sheet?: string
+          time_cs?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_best_records_club_id_athlete_id_fkey"
+            columns: ["club_id", "athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["club_id", "id"]
+          },
+          {
+            foreignKeyName: "personal_best_records_club_id_definition_id_fkey"
+            columns: ["club_id", "definition_id"]
+            isOneToOne: false
+            referencedRelation: "test_definitions"
+            referencedColumns: ["club_id", "id"]
+          },
+        ]
+      }
       session_participants: {
         Row: {
           club_id: string
