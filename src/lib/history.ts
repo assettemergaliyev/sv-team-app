@@ -6,6 +6,7 @@ export type HistorySource = {
   participants: Pick<Row<'event_participants'>, 'id' | 'athlete_id'>[];
   entries: Pick<Row<'session_participants'>, 'id' | 'session_id' | 'event_participant_id' | 'removed_at'>[];
   attempts: Pick<Row<'attempts'>, 'session_participant_id' | 'time_cs' | 'status' | 'is_current'>[];
+  personalBests: Pick<Row<'personal_best_records'>, 'athlete_id' | 'definition_id' | 'recorded_on' | 'time_cs'>[];
 };
 export type HistoryResult = { athleteId: string; eventId: string; definitionId: string; date: string; timeCs: number };
 export type HistoryDefinition = Pick<Row<'test_definitions'>, 'id'>;
@@ -41,6 +42,25 @@ export function bestHistoryPerDefinition(rows: HistoryResult[]): HistoryResult[]
     const key = `${row.definitionId}:${row.athleteId}`;
     const previous = best.get(key);
     if (!previous || row.timeCs < previous.timeCs || (row.timeCs === previous.timeCs && row.date > previous.date)) best.set(key, row);
+  }
+  return [...best.values()];
+}
+
+export function historyWithPersonalBests(rows: HistoryResult[], personalBests: HistorySource['personalBests']): HistoryResult[] {
+  const best = new Map(bestHistoryPerDefinition(rows).map(row => [`${row.definitionId}:${row.athleteId}`, row]));
+  for (const record of personalBests) {
+    const row: HistoryResult = {
+      athleteId: record.athlete_id,
+      eventId: '',
+      definitionId: record.definition_id,
+      date: record.recorded_on,
+      timeCs: Number(record.time_cs),
+    };
+    const key = `${row.definitionId}:${row.athleteId}`;
+    const current = best.get(key);
+    // The imported Boolean=1 record is the source of truth for historical PBs.
+    // Only a later, faster app result may supersede it.
+    if (!current || !(current.date > row.date && current.timeCs < row.timeCs)) best.set(key, row);
   }
   return [...best.values()];
 }
