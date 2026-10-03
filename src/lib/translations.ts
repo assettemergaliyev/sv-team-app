@@ -53,6 +53,10 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "en": "Language",
     "kk": "Тіл"
   },
+  "Тема оформления": { "en": "Appearance", "kk": "Безендіру тақырыбы" },
+  "Как в системе": { "en": "Use system setting", "kk": "Жүйе параметрін пайдалану" },
+  "Светлая": { "en": "Light", "kk": "Ашық" },
+  "Тёмная": { "en": "Dark", "kk": "Қараңғы" },
   "Администратор": {
     "en": "Administrator",
     "kk": "Әкімші"

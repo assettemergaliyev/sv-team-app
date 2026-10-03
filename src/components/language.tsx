@@ -15,3 +15,4 @@ export function LanguagePicker() {
   const { locale, setLocale, t } = useLanguage(); const selected = languages.find(l => l.code === locale)!;
   return <details className="language-picker"><summary aria-label={t('Язык')} title={t('Язык')}><span aria-hidden="true">{selected.flag}</span><span>{locale === 'kk' ? 'ҚАЗ' : locale.toUpperCase()}</span><span aria-hidden="true">⌄</span></summary><div className="language-options">{languages.map(l => <button type="button" key={l.code} lang={l.code} aria-pressed={locale === l.code} onClick={e => { setLocale(l.code); e.currentTarget.closest('details')?.removeAttribute('open'); }}><span aria-hidden="true">{l.flag}</span> {l.name}</button>)}</div></details>;
 }
+

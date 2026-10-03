@@ -42,3 +42,36 @@ td:nth-child(2){white-space:normal;overflow-wrap:anywhere}
 .test-catalog li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
 .test-catalog .danger{flex:0 0 auto}
 @media(max-width:600px){.rating-table th,.rating-table td{font-size:12px;padding:6px 3px}.rating-table th:nth-child(2),.rating-table td:nth-child(2){width:45%}.rating-table th:nth-child(3),.rating-table td:nth-child(3){width:22%}.rating-table th:nth-child(4),.rating-table td:nth-child(4){width:24%}.rating-table td:nth-child(4){font-size:10px}.rating-table.event-rating-table th:nth-child(2),.rating-table.event-rating-table td:nth-child(2){width:60%}}
+
+:root{--page-bg:#eaf0f2;--surface:#fff;--surface-soft:#f0f6f8;--surface-tint:#eaf3f6;--muted:#536b74;--danger:#952a36;--danger-border:#d9aeb3;--notice-bg:#e1eee2;--error-bg:#fbe6e7}
+body{background:var(--page-bg)}
+.theme-picker{position:relative;flex:none}
+.theme-picker summary{display:flex;align-items:center;justify-content:center;width:44px;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--green);cursor:pointer;font-size:19px;list-style:none}
+.theme-picker summary::-webkit-details-marker{display:none}
+.theme-options{min-width:185px}
+.theme-options button{min-height:40px}
+
+:root[data-theme="dark"]{color-scheme:dark;--ink:#e5edef;--green:#82c7d6;--cream:#172125;--gold:#f0cc53;--line:#34474e;--page-bg:#0d1518;--surface:#172125;--surface-soft:#202d32;--surface-tint:#263a40;--muted:#a5b7bc;--danger:#ffb0b8;--danger-border:#75454c;--notice-bg:#20372c;--error-bg:#45272d}
+:root[data-theme="dark"] body{background:var(--page-bg);color:var(--ink)}
+:root[data-theme="dark"] main{background:var(--cream)}
+:root[data-theme="dark"] header,:root[data-theme="dark"] .card,:root[data-theme="dark"] .language-options{background:var(--surface);color:var(--ink)}
+:root[data-theme="dark"] button,:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:var(--surface-soft);color:var(--ink);border-color:var(--line)}
+:root[data-theme="dark"] header button,:root[data-theme="dark"] .language-picker summary,:root[data-theme="dark"] .session-history>summary,:root[data-theme="dark"] .theme-picker summary{background:var(--surface);color:var(--green);border-color:var(--line)}
+:root[data-theme="dark"] .language-options button{background:var(--surface);color:var(--ink)}
+:root[data-theme="dark"] .language-options button[aria-pressed="true"],:root[data-theme="dark"] .tabs button[aria-pressed="true"]{background:var(--surface-tint);color:var(--green)}
+:root[data-theme="dark"] .primary{background:#287487;color:#fff;border-color:#287487}
+:root[data-theme="dark"] .primary:hover:not(:disabled){background:#35899c;border-color:#35899c}
+:root[data-theme="dark"] .tabs button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--gold)}
+:root[data-theme="dark"] .muted,:root[data-theme="dark"] small,:root[data-theme="dark"] .section-label,:root[data-theme="dark"] header .account-identity{color:var(--muted)}
+:root[data-theme="dark"] .pill,:root[data-theme="dark"] .attempt,:root[data-theme="dark"] .result-editor,:root[data-theme="dark"] .result-segments,:root[data-theme="dark"] .history-filters.card{background:var(--surface-soft);color:var(--ink)}
+:root[data-theme="dark"] .event-workspace{background:#17272d;border-color:#34515a}
+:root[data-theme="dark"] .hierarchy{color:#b3d4dc}
+:root[data-theme="dark"] .own-result{background:var(--surface-tint)}
+:root[data-theme="dark"] .inactive-athletes,:root[data-theme="dark"] .inactive-athletes span{color:#a2b0b4}
+:root[data-theme="dark"] .inactive-athletes li{background:#202a2e}
+:root[data-theme="dark"] .notice{background:var(--notice-bg);color:#c8e8ce}
+:root[data-theme="dark"] .error{background:var(--error-bg);color:#ffc5cb}
+:root[data-theme="dark"] .danger,:root[data-theme="dark"] .remove-participant,:root[data-theme="dark"] .remove-form{color:var(--danger);border-color:var(--danger-border)}
+:root[data-theme="dark"] .language-picker summary{border-color:var(--line)}
+:root[data-theme="dark"] .login{box-shadow:0 16px 50px #0005}
+:root[data-theme="dark"] .login header::after{background:linear-gradient(115deg,var(--green) 0 57%,var(--gold) 57% 77%,var(--ink) 77% 85%,var(--surface) 85%)}
