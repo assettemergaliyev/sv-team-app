@@ -72,7 +72,7 @@ function AccountMenu({ onLogout, disabled = false }: { onLogout?: () => void; di
       <div className={`account-menu-panel${onLogout ? ' has-logout' : ''}`}>
         <button type="button" className="account-menu-action" onClick={() => openDialog('theme')}>{t('Тема')}</button>
         <button type="button" className="account-menu-action" onClick={() => openDialog('language')}>{t('Язык приложения')}</button>
-        {onLogout && <button type="button" className="account-menu-logout" aria-label={t('Выйти')} title={t('Выйти')} disabled={disabled} onClick={onLogout}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg></button>}
+        {onLogout && <button type="button" className="account-menu-logout" disabled={disabled} onClick={onLogout}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>{t('Выйти')}</button>}
       </div>
     </details>
     {dialog && <div className="account-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDialog(null); }} onKeyDown={e => { if (e.key === 'Escape') setDialog(null); }}>

@@ -79,11 +79,11 @@ body{background:var(--page-bg)}
 .account-menu{position:relative;flex:none}
 .account-menu>summary{display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;padding:0;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--green)}
 .account-menu>summary::-webkit-details-marker{display:none}
-.account-menu-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:max-content;min-width:190px;max-width:calc(100vw - 32px);padding:7px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 8px 24px #0003;display:flex;flex-direction:column;gap:2px}
-.account-menu-panel.has-logout{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 6px;min-width:210px}
-.account-menu-action{width:100%;min-height:38px;padding:7px 8px;grid-column:1;text-align:left;background:var(--surface);color:var(--ink);border:0}
+.account-menu-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:max-content;min-width:0;max-width:calc(100vw - 32px);padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 8px 24px #0003;display:flex;flex-direction:column;gap:2px}
+.account-menu-panel.has-logout{min-width:0}
+.account-menu-action{width:100%;min-height:36px;padding:6px 8px;text-align:left;background:var(--surface);color:var(--ink);border:0}
 .account-menu-action:hover{background:var(--surface-soft)}
-.account-menu-logout{grid-column:2;grid-row:1 / span 2;align-self:center;display:grid;place-items:center;width:36px;height:36px;min-height:36px;padding:0;background:var(--surface);color:var(--danger);border:0}
+.account-menu-logout{display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;min-height:36px;padding:6px 8px;background:var(--surface);color:var(--danger);border:0}
 .account-menu-logout:hover{background:var(--surface-soft)}
 .inactive-athletes-section{margin:22px 0}
 .inactive-athletes-section>summary{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:650;list-style-position:inside;padding:4px 0;cursor:pointer}
