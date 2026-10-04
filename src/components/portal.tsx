@@ -37,25 +37,35 @@ function ActionForm({ children, onSubmit, disabled, label }: { children: ReactNo
 function AccountMenu({ onLogout, disabled = false }: { onLogout?: () => void; disabled?: boolean }) {
   const { t, locale, setLocale } = useLanguage();
   const { choice, setChoice } = useTheme();
-  const themes = [
-    { value: 'system', label: t('Как в системе') },
-    { value: 'light', label: t('Светлая') },
-    { value: 'dark', label: t('Тёмная') },
-  ] as const;
+  const [dialog, setDialog] = useState<'theme' | 'language' | null>(null);
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  const themes = [{ value: 'system', label: t('Как в системе') }, { value: 'light', label: t('Светлая') }, { value: 'dark', label: t('Тёмная') }] as const;
   const languages = [
     { code: 'ru', label: 'Русский' },
     { code: 'kk', label: 'Қазақша' },
     { code: 'en', label: 'English' },
   ] as const;
+  const openDialog = (next: 'theme' | 'language') => {
+    menuRef.current?.removeAttribute('open');
+    setDialog(next);
+  };
 
-  return <details className="account-menu">
-    <summary aria-label={t('Меню')} title={t('Меню')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></summary>
-    <div className="account-menu-panel">
-      <fieldset><legend>{t('Тема оформления')}</legend>{themes.map(theme => <label className="account-menu-choice" key={theme.value}><input type="radio" name="appearance" checked={choice === theme.value} onChange={() => setChoice(theme.value)} />{theme.label}</label>)}</fieldset>
-      <fieldset><legend>{t('Язык')}</legend><div className="account-menu-languages">{languages.map(language => <button type="button" key={language.code} lang={language.code} aria-pressed={locale === language.code} onClick={() => setLocale(language.code)}>{language.label}</button>)}</div></fieldset>
-      {onLogout && <button type="button" className="account-menu-logout" disabled={disabled} onClick={onLogout}>{t('Выйти')}</button>}
-    </div>
-  </details>;
+  return <>
+    <details className="account-menu" ref={menuRef}>
+      <summary aria-label={t('Меню')} title={t('Меню')}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></summary>
+      <div className="account-menu-panel">
+        <button type="button" className="account-menu-action" onClick={() => openDialog('theme')}>{t('Тема')}</button>
+        <button type="button" className="account-menu-action" onClick={() => openDialog('language')}>{t('Язык приложения')}</button>
+        {onLogout && <button type="button" className="account-menu-logout" aria-label={t('Выйти')} title={t('Выйти')} disabled={disabled} onClick={onLogout}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg></button>}
+      </div>
+    </details>
+    {dialog && <div className="account-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDialog(null); }} onKeyDown={e => { if (e.key === 'Escape') setDialog(null); }}>
+      <section className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+        <h2 id="account-modal-title">{dialog === 'language' ? t('Выберите язык') : t('Выберите тему')}</h2>
+        <div className="account-modal-options">{dialog === 'language' ? languages.map(language => <button type="button" key={language.code} lang={language.code} aria-pressed={locale === language.code} onClick={() => { setLocale(language.code); setDialog(null); }}>{language.label}</button>) : themes.map(theme => <button type="button" key={theme.value} aria-pressed={choice === theme.value} onClick={() => { setChoice(theme.value); setDialog(null); }}>{theme.label}</button>)}</div>
+      </section>
+    </div>}
+  </>;
 }
 
 export default function Portal() { return <LanguageProvider><ThemeProvider><ClubPortal /></ThemeProvider></LanguageProvider>; }
@@ -205,7 +215,7 @@ function ClubPortal() {
     finally { lock.current = false; setBusy(false); }
   }
   const athleteName = (id: string | null) => { const a = base.athletes.find(a => a.id === id); return a ? [a.first_name, a.last_name].filter(Boolean).join(' ') : t("Спортсмен"); };
-  const category = (id: string) => { const d = base.definitions.find(d => d.id === id); return d ? `${d.discipline === 'SWIMMING' ? t("Плавание") : d.discipline === 'RUNNING' ? t("Бег") : d.discipline === 'TRIATHLON' ? t("Триатлон") : d.discipline} · ${d.discipline === 'TRIATHLON' ? `${(d.distance_m / 1000).toLocaleString(locale)} ${t("км")}` : `${d.distance_m} ${t("м")}`}${d.stroke_code === 'FREESTYLE' ? t(" · Кроль") : d.stroke_code === 'BREASTSTROKE' ? t(" · Брасс") : d.stroke_code === 'BACKSTROKE' ? t(" · На спине") : d.stroke_code === 'BUTTERFLY' ? t(" · Баттерфляй") : ''}${d.discipline === 'TRIATHLON' ? ` · ${d.format_code === 'OLYMPIC' ? t('Олимпийская') : t('Спринт')}` : d.format_code === 'KICK_ONLY' ? t(' · Только ноги') : ''}` : t("Контрольный тест"); };
+  const category = (id: string) => { const d = base.definitions.find(d => d.id === id); return d ? `${d.discipline === 'SWIMMING' ? t("Плавание") : d.discipline === 'RUNNING' ? t("Бег") : d.discipline === 'TRIATHLON' ? t("Триатлон") : d.discipline} · ${d.discipline === 'TRIATHLON' ? `${(d.distance_m / 1000).toLocaleString(locale)} ${t("км")}` : `${d.distance_m} ${t("м")}`}${d.stroke_code === 'FREESTYLE' ? t(" · Кроль") : d.stroke_code === 'BREASTSTROKE' ? t(" · Брасс") : d.stroke_code === 'BACKSTROKE' ? t(" · На спине") : d.stroke_code === 'BUTTERFLY' ? t(" · Баттерфляй") : ''}${d.discipline === 'TRIATHLON' ? ` · ${d.format_code === 'OLYMPIC' ? t('Олимпийская') : t('Спринт')}` : d.format_code === 'KICK_ONLY' ? t(' · Ноги') : ''}` : t("Контрольный тест"); };
   const linkedAthlete = base.athletes.find(a => a.id === accountLinks.find(l => l.club_id === clubId && l.user_id === userId)?.athlete_id);
   const identity = club?.role === 'ADMIN' ? t('Администратор') : club?.role === 'COACH' ? (profileName ? `${profileName} · ${t('Тренер')}` : t('Тренер')) : linkedAthlete ? [linkedAthlete.first_name, linkedAthlete.last_name].filter(Boolean).join(' ') : profileName || t('Спортсмен');
   const statusAction = (action: string, id: string, revision: number) => command(action, { id, expected_revision: revision });
@@ -286,7 +296,7 @@ function ClubPortal() {
         <h3>{t("Активные спортсмены")}</h3>
         <ul className="list">{activeAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul>
         {!activeAthletes.length && <p className="empty">{t("Активных спортсменов нет.")}</p>}
-        {inactiveAthletes.length > 0 && <><h3>{t("Неактивные спортсмены")}</h3><ul className="list inactive-athletes">{inactiveAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></>}
+        {inactiveAthletes.length > 0 && <details className="inactive-athletes-section"><summary>{t("Неактивные спортсмены")} ({inactiveAthletes.length})</summary><ul className="list inactive-athletes-list">{inactiveAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></details>}
         <details className="card"><summary>{t("Изменить спортсмена")}</summary>
           <label>{t("Спортсмен")}<select value={editAthleteId} onChange={e => setEditAthleteId(e.target.value)}><option value="">{t("Выбери спортсмена")}</option>{[...activeAthletes, ...inactiveAthletes].map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label>
           {athleteToEdit && <ActionForm key={athleteToEdit.id} disabled={busy} label={t("Сохранить изменения")} onSubmit={f => command('UPDATE_ATHLETE', { id: athleteToEdit.id, expected_revision: athleteToEdit.revision, first_name: field(f, 'first'), last_name: field(f, 'last'), sex: field(f, 'sex') || null })}>
