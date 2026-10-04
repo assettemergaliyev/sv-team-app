@@ -55,6 +55,7 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "kk": "Тіл"
   },
   "Тема оформления": { "en": "Appearance", "kk": "Безендіру тақырыбы" },
+  "Меню": { "en": "Menu", "kk": "Мәзір" },
   "Как в системе": { "en": "Use system setting", "kk": "Жүйе параметрін пайдалану" },
   "Светлая": { "en": "Light", "kk": "Ашық" },
   "Тёмная": { "en": "Dark", "kk": "Қараңғы" },

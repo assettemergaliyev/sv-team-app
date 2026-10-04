@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useLanguage } from '@/components/language';
 
-type ThemeChoice = 'system' | 'light' | 'dark';
+export type ThemeChoice = 'system' | 'light' | 'dark';
 
 const STORAGE_KEY = 'sv-team.theme.v1';
 const ThemeContext = createContext({ choice: 'system' as ThemeChoice, setChoice: (_: ThemeChoice) => {} });
@@ -49,23 +49,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return <ThemeContext.Provider value={{ choice, setChoice }}>{children}</ThemeContext.Provider>;
 }
 
-export function ThemePicker() {
-  const { choice, setChoice } = useContext(ThemeContext);
-  const { t } = useLanguage();
-  const choices: { value: ThemeChoice; label: string; icon: string }[] = [
-    { value: 'system', label: t('Как в системе'), icon: '◐' },
-    { value: 'light', label: t('Светлая'), icon: '☀' },
-    { value: 'dark', label: t('Тёмная'), icon: '☾' },
-  ];
-  const icon = choices.find(item => item.value === choice)?.icon ?? '◐';
-
-  return <details className="theme-picker">
-    <summary aria-label={t('Тема оформления')} title={t('Тема оформления')}><span aria-hidden="true">{icon}</span></summary>
-    <div className="language-options theme-options">
-      {choices.map(item => <button type="button" key={item.value} aria-pressed={choice === item.value} onClick={event => {
-        setChoice(item.value);
-        event.currentTarget.closest('details')?.removeAttribute('open');
-      }}><span aria-hidden="true">{item.icon}</span> {item.label}</button>)}
-    </div>
-  </details>;
-}
+export const useTheme = () => useContext(ThemeContext);
