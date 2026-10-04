@@ -23,7 +23,7 @@ export const translations: Record<string, { en: string; kk: string }> = {
   "Тип": { en: "Type", kk: "Түрі" },
   "Сохранить изменения": { en: "Save changes", kk: "Өзгерістерді сақтау" },
   "Фамилию можно добавить позже.": { en: "You can add a surname later.", kk: "Тегін кейін қосуға болады." },
-  " · Только ноги": { en: " · Kick only", kk: " · Тек аяқпен" },
+  " · Ноги": { en: " · Legs", kk: " · Аяқпен" },
   " · Условия не указаны": { en: " · Conditions unspecified", kk: " · Жағдайлар көрсетілмеген" },
   " · Манеж": { en: " · Indoor track", kk: " · Манеж" },
   "Черновик": {
@@ -55,6 +55,10 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "kk": "Тіл"
   },
   "Тема оформления": { "en": "Appearance", "kk": "Безендіру тақырыбы" },
+  "Тема": { "en": "Theme", "kk": "Тақырып" },
+  "Язык приложения": { "en": "App language", "kk": "Қолданба тілі" },
+  "Выберите тему": { "en": "Choose a theme", "kk": "Тақырыпты таңдаңыз" },
+  "Выберите язык": { "en": "Choose a language", "kk": "Тілді таңдаңыз" },
   "Меню": { "en": "Menu", "kk": "Мәзір" },
   "Как в системе": { "en": "Use system setting", "kk": "Жүйе параметрін пайдалану" },
   "Светлая": { "en": "Light", "kk": "Ашық" },

@@ -22,7 +22,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(max-width:600px){.brand-lockup{width:146px}.brand-wordmark{font-size:32px}.brand-discipline{font-size:8px;letter-spacing:1.7px}.brand-country{font-size:8px;letter-spacing:2.6px}.header-toolbar{gap:8px}.header-actions{gap:6px}.portal-heading{font-size:17px;margin-top:22px}.language-picker summary{padding:8px}.login{margin:0 auto;min-height:100dvh;box-shadow:none}}
 @media(max-width:360px){header,.body{padding:16px}.brand-lockup{width:128px}.brand-wordmark{font-size:29px}.brand-discipline{letter-spacing:1.2px}.brand-country{letter-spacing:2px}}
 .result-segments{list-style:none;flex:1 0 100%;margin:2px 0;padding:10px 12px;background:#f0f6f8;border-radius:10px}.result-segments li{display:flex;justify-content:space-between;gap:14px;padding:3px 0}.stage-editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:16px 0}.stage-editor legend{font-weight:650;padding:0 5px}.stage-editor label{margin:4px 0}.stage-editor input{font-variant-numeric:tabular-nums}
-.history-filters .row{align-items:flex-end}.history-filters label{min-width:150px}.session-history{position:relative;margin:10px 0}.session-history>summary{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff;color:var(--green)}.session-history .cards{margin-top:8px}.session-history .card{margin:6px 0}.inactive-athletes{color:#7b888d}.inactive-athletes li{background:#f0f3f4;padding-left:10px;border-radius:6px}.inactive-athletes span{color:#7b888d}.history-filters.card{background:#f8fafb}
+.history-filters .row{align-items:flex-end}.history-filters label{min-width:150px}.session-history{position:relative;margin:10px 0}.session-history>summary{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fff;color:var(--green)}.session-history .cards{margin-top:8px}.session-history .card{margin:6px 0}.history-filters.card{background:#f8fafb}
 .table-scroll{max-width:100%;overflow:visible}
 .table-scroll table{min-width:0}
 table{display:table;max-width:100%;min-width:0}
@@ -67,8 +67,8 @@ body{background:var(--page-bg)}
 :root[data-theme="dark"] .event-workspace{background:#17272d;border-color:#34515a}
 :root[data-theme="dark"] .hierarchy{color:#b3d4dc}
 :root[data-theme="dark"] .own-result{background:var(--surface-tint)}
-:root[data-theme="dark"] .inactive-athletes,:root[data-theme="dark"] .inactive-athletes span{color:#a2b0b4}
-:root[data-theme="dark"] .inactive-athletes li{background:#202a2e}
+:root[data-theme="dark"] .inactive-athletes-list{color:#a2b0b4}
+:root[data-theme="dark"] .inactive-athletes-list li{background:#202a2e}
 :root[data-theme="dark"] .notice{background:var(--notice-bg);color:#c8e8ce}
 :root[data-theme="dark"] .error{background:var(--error-bg);color:#ffc5cb}
 :root[data-theme="dark"] .danger,:root[data-theme="dark"] .remove-participant,:root[data-theme="dark"] .remove-form{color:var(--danger);border-color:var(--danger-border)}
@@ -80,14 +80,23 @@ body{background:var(--page-bg)}
 .account-menu>summary{display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;padding:0;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--green)}
 .account-menu>summary::-webkit-details-marker{display:none}
 .account-menu-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:min(290px,calc(100vw - 32px));padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 8px 24px #0003}
-.account-menu-panel fieldset{border:0;border-bottom:1px solid var(--line);padding:0 0 10px;margin:0 0 10px}
-.account-menu-panel legend{font-weight:650;padding:0 0 4px}
-.account-menu-choice{display:flex;align-items:center;gap:9px;margin:8px 0;cursor:pointer}
-.account-menu-choice input{width:16px;height:16px;min-height:0;margin:0;accent-color:var(--green)}
-.account-menu-languages{display:grid;gap:6px}
-.account-menu-languages button{width:100%;text-align:left;background:var(--surface-soft);color:var(--ink)}
-.account-menu-languages button[aria-pressed="true"]{border-color:var(--green);color:var(--green)}
-.account-menu-logout{width:100%;margin-top:12px;text-align:left}
+.account-menu-panel{display:flex;flex-direction:column;gap:4px}
+.account-menu-action{width:100%;grid-column:1/-1;text-align:left;background:var(--surface);color:var(--ink);border:0}
+.account-menu-action:hover{background:var(--surface-soft)}
+.account-menu-logout{align-self:flex-end;display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:0;background:var(--surface);color:var(--danger);border:0}
+.account-menu-logout:hover{background:var(--surface-soft)}
+.inactive-athletes-section{margin:22px 0}
+.inactive-athletes-section>summary{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:650;list-style-position:inside;padding:4px 0;cursor:pointer}
+.inactive-athletes-list{margin-top:8px}
+.inactive-athletes-list li{padding-left:10px;border-radius:6px;background:var(--surface-soft)}
+.inactive-athletes-list .athlete-link{color:var(--muted)}
+.account-modal-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:rgb(0 0 0/.86)}
+.account-modal{width:min(100%,420px);max-height:min(80dvh,600px);overflow:auto;padding:18px 24px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 40px #0005}
+.account-modal h2{margin:4px 0 16px;font-size:20px}
+.account-modal-options{display:grid;gap:2px}
+.account-modal-options button{width:100%;min-height:50px;padding:10px 0;text-align:left;border:0;border-radius:0;background:var(--surface);color:var(--ink)}
+.account-modal-options button[aria-pressed="true"]{font-weight:700;color:var(--green)}
+.account-modal-options button:hover{background:var(--surface-soft)}
 .rating-results{overflow:hidden}
 .rating-table{width:100%;table-layout:fixed}
 .rating-table th,.rating-table td{overflow-wrap:normal}
