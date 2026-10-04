@@ -1,6 +1,7 @@
 export type Locale = "ru" | "kk" | "en";
 export const translations: Record<string, { en: string; kk: string }> = {
   "Активные спортсмены": { en: "Active athletes", kk: "Белсенді спортшылар" },
+  "Все спортсмены": { en: "All athletes", kk: "Барлық спортшылар" },
   "История стартов": { en: "Event history", kk: "Старттар тарихы" },
   "Закрыть": { en: "Close", kk: "Жабу" },
   "Удалить": { en: "Delete", kk: "Жою" },
