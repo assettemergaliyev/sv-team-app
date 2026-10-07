@@ -1,5 +1,33 @@
 export type PoolVisit = { visited_on: string; is_counted: boolean };
 
+export function formatPoolDate(date: string) {
+  const [year, month, day] = date.split('-');
+  return year && month && day ? `${day}.${month}.${year}` : '';
+}
+
+export function maskPoolDate(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+}
+
+export function parsePoolDate(value: string) {
+  const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value.trim());
+  if (!match) return null;
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText), month = Number(monthText), year = Number(yearText);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+export function monthLabel(month: string, locale: string) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  if (!year || !monthNumber || monthNumber < 1 || monthNumber > 12) return month;
+  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
+}
+
 export function currentDateInTimezone(timezone: string, now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
