@@ -195,6 +195,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_counted: boolean
+          is_selected: boolean
           revision: number
           updated_at: string
           updated_by: string | null
@@ -207,6 +208,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_counted?: boolean
+          is_selected?: boolean
           revision?: number
           updated_at?: string
           updated_by?: string | null
@@ -219,6 +221,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_counted?: boolean
+          is_selected?: boolean
           revision?: number
           updated_at?: string
           updated_by?: string | null
@@ -1212,3 +1215,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
