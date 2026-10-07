@@ -59,3 +59,15 @@ export function countVisitsByDay(visits: PoolVisit[]) {
   }
   return [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }));
 }
+
+export type DailyPoolAttendance = PoolVisit & {
+  athlete_id: string;
+  is_selected: boolean;
+};
+
+export function selectedPoolAthletesForDay(visits: DailyPoolAttendance[], date: string) {
+  return [...new Set(visits
+    .filter(visit => visit.visited_on === date && (visit.is_selected || visit.is_counted))
+    .map(visit => visit.athlete_id))];
+}
+

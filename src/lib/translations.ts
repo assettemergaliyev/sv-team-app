@@ -605,6 +605,18 @@ export const translations: Record<string, { en: string; kk: string }> = {
 "Формат триатлона": {"en": "Triathlon format", "kk": "Триатлон форматы"},
 "Этапы триатлона": {"en": "Triathlon stages", "kk": "Триатлон кезеңдері"},
 "Велосипед": {"en": "Cycling", "kk": "Велосипед"},
-"Проверь время этапов: укажи полное время в формате мм:сс.сс или чч:мм:сс.сс.": {"en": "Check each stage time. Enter the full time as mm:ss.hh or hh:mm:ss.hh.", "kk": "Кезең уақытын тексеріңіз. Толық уақытты мм:сс.сс немесе чч:мм:сс.сс пішімінде енгізіңіз."}
+"Проверь время этапов: укажи полное время в формате мм:сс.сс или чч:мм:сс.сс.": {"en": "Check each stage time. Enter the full time as mm:ss.hh or hh:mm:ss.hh.", "kk": "Кезең уақытын тексеріңіз. Толық уақытты мм:сс.сс немесе чч:мм:сс.сс пішімінде енгізіңіз."},
+"Найти спортсмена": {"en": "Find athlete", "kk": "Спортшыны табу"},
+"Добавить в список": {"en": "Add to the selected day", "kk": "Таңдалған күнге қосу"},
+"Убрать спортсмена из списка?": {"en": "Remove athlete from the list?", "kk": "Спортшыны тізімнен алып тастау керек пе?"},
+"Убрать {name} из посещаемости за {date}? Отметка за этот день будет отменена. Профиль спортсмена и остальные посещения сохранятся.": {"en": "Remove {name} from attendance for {date}? The visit for that day will be canceled. The athlete profile and other visits will remain.", "kk": "{name} спортшысын {date} күнгі қатысу тізімінен алып тастау керек пе? Сол күнгі белгі жойылады. Спортшының профилі мен басқа келулері сақталады."},
+"Запись убрана из списка за выбранный день. Изменение сохранено в истории.": {"en": "Athlete removed from the selected day's list. The change was saved to history.", "kk": "Спортшы таңдалған күн тізімінен алынды. Өзгеріс тарихта сақталды."},
+"Спортсмен добавлен в список на выбранный день.": {"en": "Athlete added to the selected day's list.", "kk": "Спортшы таңдалған күн тізіміне қосылды."},
+"Спортсмен создан, но не добавлен в список на выбранный день.": {"en": "Athlete was created but could not be added to the selected day's list.", "kk": "Спортшы жасалды, бірақ таңдалған күн тізіміне қосылмады."},
+"Список на этот день пуст. Найди спортсмена или добавь нового.": {"en": "The list for this day is empty. Find an athlete or add a new one.", "kk": "Бұл күннің тізімі бос. Спортшыны тауып немесе жаңасын қосыңыз."},
+"Спортсмен попадет в список выбранного дня. Посещение засчитается только после установки галочки.": {"en": "The athlete will be added to the selected day's list. The visit is counted only after you check the box.", "kk": "Спортшы таңдалған күн тізіміне қосылады. Қатысу белгі қойылғаннан кейін ғана есептеледі."},
+
+"Удалить {name} из посещаемости за {date}? Отметка за этот день будет отменена. Профиль и остальные посещения сохранятся.": {"en": "Remove {name} from attendance for {date}? The visit for that day will be canceled. The athlete profile and other visits will remain.", "kk": "{name} спортшысын {date} күнгі қатысу тізімінен алып тастау керек пе? Сол күнгі белгі жойылады. Спортшының профилі мен басқа келулері сақталады."},
+"Убрать {name} из списка за {date}? Профиль и история посещений сохранятся.": {"en": "Remove {name} from the list for {date}? The athlete profile and attendance history will remain.", "kk": "{name} спортшысын {date} күн тізімінен алу керек пе? Спортшы профилі мен қатысу тарихы сақталады."},
 };
 export function translate(text: string, locale: Locale) { return locale === "ru" ? text : translations[text]?.[locale] ?? text; }
