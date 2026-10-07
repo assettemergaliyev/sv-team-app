@@ -10,3 +10,4 @@ assert.equal(leaderboard('swim400','alltime','F').length,1);
 assert.equal(history('swim1500','a1').length,0);
 assert.equal(format(360000+6234),'1:01:02.34');
 console.log('8 athlete analytics checks passed');
+

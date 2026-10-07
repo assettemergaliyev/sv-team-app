@@ -4,7 +4,7 @@ Mobile-first club performance platform for swimming, running and triathlon.
 
 ## Current status
 
-Next.js application now includes email/password login and a coach results flow connected to the separate Supabase test project. Database schema, RLS and audited commands are applied; first administrator configured. Build, type checks and domain tests passed. Browser QA is environment-blocked and real authenticated UI flow is not yet verified. No production hosting or historical import yet. See [application checkpoint](docs/app-checkpoint.md) and [database implementation](supabase/README.md).
+Production: [svteam.app](https://svteam.app) on Vercel, backed by Supabase project `qchbyyipfblhrpjtrqfr`. The live app includes club sign-in, admin/coach/athlete roles, athlete invitations, test and start results, and pool attendance. Athlete invitation links return to the app password setup page on the custom domain. The `invite-athlete` Edge Function verifies JWTs and active club permissions. Type checks, app tests and the production build pass. See [project status](docs/status.md), [application checkpoint](docs/app-checkpoint.md), and [database implementation](supabase/README.md).
 
 ## Run the application
 
@@ -24,7 +24,7 @@ Input masks support minutes/seconds/hundredths and optional hours. Errors identi
 
 ## Requirements
 
-- RU (default), KK and EN planned; prototype currently Russian.
+- RU is the default language; RU, KK and EN are available in the live app.
 - Invite-only access; athlete record independent of account.
 - Keep every attempt; best valid published attempt determines official result.
 - PB, history, progress, event leaderboard and all-time records.
@@ -50,7 +50,7 @@ Run `node tests/time-validation.test.js` and `node tests/athlete-analytics.test.
 `tests/`: current validation checks.
 `.github/`: issue and pull request templates.
 
-Next.js, TypeScript and Supabase are approved. Hosting remains unconfirmed; Vercel is a candidate. No open-source license has been selected.
+Production hosting is Vercel at [svteam.app](https://svteam.app). No open-source license has been selected.
 
 ### Current mobile workflow (2026-10-02)
 

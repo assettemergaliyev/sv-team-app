@@ -9,3 +9,4 @@ export function browserDatabase() {
   if (!url || !key) throw new Error('Подключение к приложению ещё не настроено.');
   return createClient<Database>(url, key);
 }
+

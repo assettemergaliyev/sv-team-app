@@ -1,4 +1,10 @@
-# Status — 2026-09-30
+# Status — 2026-10-08
+
+## Production checkpoint — 2026-10-08: custom domain, invitations and pool attendance
+
+Production is live at [svteam.app](https://svteam.app), backed by Supabase project `qchbyyipfblhrpjtrqfr`. The app supports athlete, coach and admin accounts; coaches/admins can invite athletes. The active `invite-athlete` Edge Function requires a valid JWT and active coach/admin club membership, and invitation links return to the password setup page on `svteam.app`. Pool attendance is tracked by local calendar day, with a shared coach roster and daily/monthly visit counts.
+
+The login form has an accessible eye control for showing/hiding the password and a clear gap before the sign-in button. Type checks and app tests pass. The current production build is READY. Supabase reports 16 applied migrations; migration file prefixes in GitHub are aligned with the database versions.
 
 ## Latest checkpoint — 2026-10-03: historical rankings and roster cleanup
 

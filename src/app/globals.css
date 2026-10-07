@@ -19,6 +19,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .login{min-height:0;box-shadow:0 16px 50px #163c4912}
 .login header{position:relative;padding-bottom:34px}
 .login header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:8px;background:linear-gradient(115deg,var(--green) 0 57%,var(--gold) 57% 77%,var(--ink) 77% 85%,#fff 85%)}
+.text-button{background:transparent;border-color:transparent;color:var(--green);margin-top:8px}
+.password-field{display:flex;align-items:stretch;gap:8px}
+.password-field input{flex:1;min-width:0;margin-top:0}
+.password-visibility{display:grid;place-items:center;flex:none;width:44px;min-width:44px;padding:8px;margin-top:0;color:var(--green);background:var(--surface-soft)}
+.password-field + .primary{margin-top:12px}
 @media(max-width:600px){.brand-lockup{width:146px}.brand-wordmark{font-size:32px}.brand-discipline{font-size:8px;letter-spacing:1.7px}.brand-country{font-size:8px;letter-spacing:2.6px}.header-toolbar{gap:8px}.header-actions{gap:6px}.portal-heading{font-size:17px;margin-top:22px}.language-picker summary{padding:8px}.login{margin:0 auto;min-height:100dvh;box-shadow:none}}
 @media(max-width:360px){header,.body{padding:16px}.brand-lockup{width:128px}.brand-wordmark{font-size:29px}.brand-discipline{letter-spacing:1.2px}.brand-country{letter-spacing:2px}}
 .result-segments{list-style:none;flex:1 0 100%;margin:2px 0;padding:10px 12px;background:#f0f6f8;border-radius:10px}.result-segments li{display:flex;justify-content:space-between;gap:14px;padding:3px 0}.stage-editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:16px 0}.stage-editor legend{font-weight:650;padding:0 5px}.stage-editor label{margin:4px 0}.stage-editor input{font-variant-numeric:tabular-nums}
@@ -67,6 +72,8 @@ body{background:var(--page-bg)}
 :root[data-theme="dark"] .event-workspace{background:#17272d;border-color:#34515a}
 :root[data-theme="dark"] .hierarchy{color:#b3d4dc}
 :root[data-theme="dark"] .own-result{background:var(--surface-tint)}
+:root[data-theme="dark"] .active-athletes-list{color:#a2b0b4}
+:root[data-theme="dark"] .active-athletes-list li{background:#202a2e}
 :root[data-theme="dark"] .inactive-athletes-list{color:#a2b0b4}
 :root[data-theme="dark"] .inactive-athletes-list li{background:#202a2e}
 :root[data-theme="dark"] .notice{background:var(--notice-bg);color:#c8e8ce}
@@ -85,6 +92,10 @@ body{background:var(--page-bg)}
 .account-menu-action:hover{background:var(--surface-soft)}
 .account-menu-logout{display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;min-height:36px;padding:6px 8px;background:var(--surface);color:var(--danger);border:0}
 .account-menu-logout:hover{background:var(--surface-soft)}
+.active-athletes-section{margin:22px 0}
+.active-athletes-section>summary{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:650;list-style-position:inside;padding:4px 0;cursor:pointer}
+.active-athletes-list{margin-top:8px}
+.active-athletes-list li{padding-left:10px;border-radius:6px;background:var(--surface-soft)}
 .inactive-athletes-section{margin:22px 0}
 .inactive-athletes-section>summary{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:650;list-style-position:inside;padding:4px 0;cursor:pointer}
 .inactive-athletes-list{margin-top:8px}

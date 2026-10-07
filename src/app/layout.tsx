@@ -4,3 +4,4 @@ export const metadata: Metadata = { title: 'SV Team — результаты к�
 export default function Layout({ children }: { children: React.ReactNode }) {
   return <html lang="ru"><body>{children}</body></html>;
 }
+

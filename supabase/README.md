@@ -1,8 +1,14 @@
-# SV Team App database — implementation checkpoint 2026-10-01
+# SV Team App database — production checkpoint 2026-10-08
 
-Test project: `sv-team-app-dev`, ref `qchbyyipfblhrpjtrqfr`, organization SV Team, region Frankfurt (`eu-central-1`). PostgreSQL 17.11 verified. Existing inactive SV Tracker was not changed. Creation cost returned by Supabase: USD 0/month; this is not a guarantee about future usage or plan changes.
+Production project: ref `qchbyyipfblhrpjtrqfr`, region Frankfurt (`eu-central-1`). PostgreSQL 17.11 was verified during setup. The project backs [svteam.app](https://svteam.app). Existing inactive SV Tracker was not changed. Creation cost returned by Supabase: USD 0/month; this is not a guarantee about future usage or plan changes.
 
 Applied migrations (in order; matches remote Supabase history):
+
+## Current production checkpoint
+
+`supabase_list_migrations` reports 16 applied migrations. The SQL files below use the exact recorded version prefixes so a linked Supabase CLI project will not treat applied migrations as pending.
+
+Pool attendance is separate from sports sessions. The invitation Edge Function is active with JWT verification enabled; it checks current club membership and role, links the invitation to the athlete card, and redirects to `https://svteam.app/?invite=1`. The project uses Supabase Auth for account credentials; do not commit service-role or secret keys.
 
 1. `20261001190100_initial_schema_and_read_access.sql`: 21 application tables plus managed `auth.users`, tenant/event foreign keys, constraints, private athlete data, RLS and security-invoker leaderboard.
 2. `20261001190802_audited_sports_commands.sql`: checked transactional write commands, revisions, idempotency, append-only audit and FK indexes.
@@ -11,7 +17,15 @@ Applied migrations (in order; matches remote Supabase history):
 5. `20261003094752_triathlon_result_segments.sql`: atomic triathlon total/stage saves and audit history.
 6. `20261003094806_import_triathlon_history.sql`: migration marker for the corrected history import.
 7. `20261003094944_import_triathlon_history_reconciled.sql`: imports historic triathlon totals and identifiable splits.
-8. `20261003101524_map_cancelled_swim_to_run.sql`: records 2.5 km running as the 2021-05-02 replacement for the cancelled swim, and 5 km as the run stage.
+
+9. `20261003105415_sync_athlete_sex_and_activity.sql`: synchronizes athlete sex and activity status.
+10. `20261003131646_archive_wrong_swim_test_definitions.sql`: archives invalid test definitions.
+11. `20261003144720_personal_best_records.sql`: stores personal-best records.
+12. `20261007150132_pool_attendance.sql`: adds the pool roster and daily attendance.
+13. `20261007150219_pool_attendance_actor_indexes.sql`: indexes the audit actor columns.
+14. `20261007161955_admin_only_test_catalog.sql`: limits test-catalog changes to administrators.
+15. `20261007164013_date_scoped_pool_attendance.sql`: stores daily attendance selection.
+16. `20261007172258_athlete_invitations_email.sql`: records invitation email and pending-email uniqueness.
 
 Migration filenames use the version IDs returned by remote history. Apply files in order on a fresh project. `sql/*_candidate.sql` are working copies, not additional migrations to run.
 

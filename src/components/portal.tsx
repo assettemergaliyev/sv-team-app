@@ -26,6 +26,15 @@ function RatingAthleteName({ firstName, lastName }: { firstName?: string; lastNa
 type Command = (action: string, payload: Record<string, Json>) => Promise<boolean>;
 const statusLabels: Record<string, string> = { DRAFT: 'Черновик', PUBLISHED: 'Опубликована', CANCELLED: 'Удалена', OPEN: 'Старт открыт', CLOSED: 'Старт закрыт' };
 const field = (f: FormData, key: string) => String(f.get(key) ?? '').trim();
+async function functionErrorMessage(error: unknown) {
+  const fallback = error instanceof Error ? error.message : String(error);
+  const context = (error as { context?: unknown } | null)?.context;
+  if (!(context instanceof Response)) return fallback;
+  try {
+    const body = await context.clone().json() as { error?: unknown };
+    return typeof body.error === 'string' ? body.error : fallback;
+  } catch { return fallback; }
+}
 function ActionForm({ children, onSubmit, disabled, label }: { children: ReactNode; onSubmit: (f: FormData) => Promise<boolean>; disabled: boolean; label: string }) {
   const { t } = useLanguage();
   const [error, setError] = useState('');
@@ -33,6 +42,24 @@ function ActionForm({ children, onSubmit, disabled, label }: { children: ReactNo
     <fieldset disabled={disabled} style={{ border: 0, padding: 0, margin: 0 }}>{children}<button className="primary" type="submit">{label}</button></fieldset>
     {error && <p role="alert" className="notice error">{t(error)}</p>}
   </form>;
+}
+
+function PasswordField({ id, label, name, autoComplete, disabled, minLength, required = false }: { id: string; label: string; name: string; autoComplete: string; disabled: boolean; minLength?: number; required?: boolean }) {
+  const { t } = useLanguage();
+  const [visible, setVisible] = useState(false);
+  return <>
+    <label htmlFor={id}>{t(label)}</label>
+    <div className="password-field">
+      <input id={id} name={name} type={visible ? 'text' : 'password'} autoComplete={autoComplete} minLength={minLength} required={required} disabled={disabled} />
+      <button type="button" className="password-visibility" aria-label={t(visible ? 'Скрыть пароль' : 'Показать пароль')} title={t(visible ? 'Скрыть пароль' : 'Показать пароль')} aria-pressed={visible} onClick={() => setVisible(value => !value)} disabled={disabled}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
+          <circle cx="12" cy="12" r="3" />
+          {visible && <path d="m4 4 16 16" />}
+        </svg>
+      </button>
+    </div>
+  </>;
 }
 
 function AccountMenu({ onLogout, disabled = false }: { onLogout?: () => void; disabled?: boolean }) {
@@ -113,6 +140,11 @@ function ClubPortal() {
   const [attendanceRemoveTarget, setAttendanceRemoveTarget] = useState<{ athlete: Row<'athletes'>; visitedOn: string; wasCounted: boolean } | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceSearch, setAttendanceSearch] = useState('');
+  const [inviteSetupPending, setInviteSetupPending] = useState(false);
+  const [inviteSetupMode, setInviteSetupMode] = useState<'invite' | 'recovery'>('invite');
+  const [passwordResetRequested, setPasswordResetRequested] = useState(false);
+  const [passwordResetMode, setPasswordResetMode] = useState(false);
+  const [inviteAthleteId, setInviteAthleteId] = useState('');
   const [newTestDiscipline, setNewTestDiscipline] = useState('SWIMMING');
   const [sessionId, setSessionId] = useState(''), [saving, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [baseLoading, setBaseLoading] = useState(false), [eventLoading, setEventLoading] = useState(false);
@@ -128,6 +160,13 @@ function ClubPortal() {
     let unsubscribe = () => {};
     try {
       const client = browserDatabase(); setDb(client);
+      const inviteUrl = new URL(window.location.href);
+      const inviteLink = inviteUrl.searchParams.get('invite') === '1' || new URLSearchParams(inviteUrl.hash.slice(1)).get('type') === 'invite';
+      const recoveryLink = new URLSearchParams(inviteUrl.hash.slice(1)).get('type') === 'recovery';
+      if (inviteLink || recoveryLink) {
+        setInviteSetupPending(true);
+        setInviteSetupMode(recoveryLink ? 'recovery' : 'invite');
+      }
       const check = async () => {
         const revision = ++generation.current;
         try {
@@ -152,11 +191,28 @@ function ClubPortal() {
         finally { if (alive) setChecking(false); }
       };
       void check();
-      const { data: sub } = client.auth.onAuthStateChange(() => { setTimeout(() => { if (alive) void check(); }, 0); });
+      const { data: sub } = client.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setInviteSetupPending(true);
+          setInviteSetupMode('recovery');
+        }
+        setTimeout(() => { if (alive) void check(); }, 0);
+      });
       unsubscribe = () => sub.subscription.unsubscribe();
     } catch (err) { setError(friendlyError(err)); setChecking(false); }
     return () => { alive = false; generation.current++; unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    if (!db || !clubId || !staff) return;
+    let alive = true;
+    void db.from('athlete_accounts').select('*').eq('club_id', clubId).then(({ data, error: linksError }) => {
+      if (!alive) return;
+      if (linksError) setError(friendlyError(linksError));
+      else setAccountLinks(data ?? []);
+    });
+    return () => { alive = false; };
+  }, [db, clubId, staff]);
 
   const fetchBase = useCallback(async (client: SupabaseClient<Database>, id: string) => {
     const [athletes, definitions, events] = await Promise.all([
@@ -315,6 +371,47 @@ function ClubPortal() {
     catch (err) { setError(friendlyError(err)); }
     finally { lock.current = false; setBusy(false); }
   }
+  async function requestPasswordReset(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault(); if (!db || lock.current) return;
+    const emailAddress = field(new FormData(e.currentTarget), 'email').toLowerCase();
+    lock.current = true; setBusy(true); setError(''); setMessage('');
+    try {
+      const { error: resetError } = await db.auth.resetPasswordForEmail(emailAddress);
+      if (resetError) throw new Error(resetError.message);
+      setPasswordResetRequested(true);
+      setMessage(t('Если аккаунт с этой почтой существует, ссылка для сброса пароля отправлена.'));
+    } catch (err) { setError(friendlyError(err)); }
+    finally { lock.current = false; setBusy(false); }
+  }
+  async function finishInvitation(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault(); if (!db || lock.current) return;
+    const f = new FormData(e.currentTarget), password = String(f.get('password') ?? ''), confirmation = String(f.get('confirmPassword') ?? '');
+    if (password.length < 8) { setError(t('Пароль должен содержать не менее 8 символов.')); return; }
+    if (password !== confirmation) { setError(t('Пароли не совпадают.')); return; }
+    lock.current = true; setBusy(true); setError(''); setMessage('');
+    try {
+      const { error: passwordError } = await db.auth.updateUser({ password });
+      if (passwordError) throw new Error(passwordError.message);
+      if (inviteSetupMode === 'invite') {
+        const { error: acceptError } = await db.functions.invoke('invite-athlete', { body: { action: 'accept' } });
+        if (acceptError) throw new Error(await functionErrorMessage(acceptError));
+      }
+      window.history.replaceState(null, '', window.location.pathname);
+      setInviteSetupPending(false); setMessage(t('Пароль сохранён. Добро пожаловать в SV Team!'));
+    } catch (err) { setError(friendlyError(err)); }
+    finally { lock.current = false; setBusy(false); }
+  }
+  async function sendAthleteInvitation(form: FormData) {
+    if (!db || !clubId) return false;
+    const athleteId = field(form, 'athlete'), inviteEmail = field(form, 'email').toLowerCase();
+    const { error: inviteError } = await db.functions.invoke('invite-athlete', { body: { action: 'send', club_id: clubId, athlete_id: athleteId, email: inviteEmail } });
+    if (inviteError) throw new Error(await functionErrorMessage(inviteError));
+    const { data: links, error: linksError } = await db.from('athlete_accounts').select('*').eq('club_id', clubId);
+    if (!linksError) setAccountLinks(links ?? []);
+    setInviteAthleteId('');
+    setMessage(t('Приглашение отправлено на {email}.').replace('{email}', inviteEmail));
+    return true;
+  }
   const athleteName = (id: string | null) => { const a = base.athletes.find(a => a.id === id); return a ? [a.first_name, a.last_name].filter(Boolean).join(' ') : t("Спортсмен"); };
   const category = (id: string) => { const d = base.definitions.find(d => d.id === id); return d ? `${d.discipline === 'SWIMMING' ? t("Плавание") : d.discipline === 'RUNNING' ? t("Бег") : d.discipline === 'TRIATHLON' ? t("Триатлон") : d.discipline} · ${d.discipline === 'TRIATHLON' ? `${(d.distance_m / 1000).toLocaleString(locale)} ${t("км")}` : `${d.distance_m} ${t("м")}`}${d.stroke_code === 'FREESTYLE' ? t(" · Кроль") : d.stroke_code === 'BREASTSTROKE' ? t(" · Брасс") : d.stroke_code === 'BACKSTROKE' ? t(" · На спине") : d.stroke_code === 'BUTTERFLY' ? t(" · Баттерфляй") : ''}${d.discipline === 'TRIATHLON' ? ` · ${d.format_code === 'OLYMPIC' ? t('Олимпийская') : t('Спринт')}` : d.format_code === 'KICK_ONLY' ? t(' · Ноги') : ''}` : t("Контрольный тест"); };
   const linkedAthlete = base.athletes.find(a => a.id === accountLinks.find(l => l.club_id === clubId && l.user_id === userId)?.athlete_id);
@@ -383,6 +480,8 @@ function ClubPortal() {
   const bySurname = (a: Row<'athletes'>, b: Row<'athletes'>) => a.last_name.localeCompare(b.last_name, locale) || a.first_name.localeCompare(b.first_name, locale);
   const activeAthletes = base.athletes.filter(a => a.sport_status === 'ACTIVE').sort(bySurname);
   const inactiveAthletes = base.athletes.filter(a => a.sport_status !== 'ACTIVE').sort(bySurname);
+  const linkedAthleteIds = new Set(accountLinks.filter(link => link.club_id === clubId).map(link => link.athlete_id));
+  const athletesWithoutAccounts = [...activeAthletes, ...inactiveAthletes].filter(athlete => !linkedAthleteIds.has(athlete.id));
   const visitsForSelectedDay = attendanceVisits.filter(row => row.visited_on === attendanceDate);
   const attendanceAthleteIds = selectedPoolAthletesForDay(attendanceVisits, attendanceDate);
   const attendanceDayAthleteIdSet = new Set(attendanceAthleteIds);
@@ -394,7 +493,8 @@ function ClubPortal() {
     : [];
   const athleteToEdit = base.athletes.find(a => a.id === editAthleteId);
   if (checking) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{t("Проверяем вход…")}</h1></header></main>;
-  if (!email) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{t("Результаты твоей команды")}</h1><p>{t("Войди в аккаунт клуба.")}</p></header><div className="body"><form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><label>{t("Пароль")}<input name="password" type="password" autoComplete="current-password" required disabled={busy} /></label><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button></form>{error && <p className="notice error" role="alert">{t(error)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
+  if (inviteSetupPending) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{inviteSetupMode === 'recovery' ? t("Создать новый пароль") : t("Добро пожаловать в SV Team")}</h1><p>{email ? t("Задай пароль для своего аккаунта спортсмена.") : t("Открой ссылку из письма-приглашения, чтобы продолжить.")}</p></header><div className="body">{email ? <form onSubmit={finishInvitation}><PasswordField id="new-password" name="password" label="Новый пароль" autoComplete="new-password" minLength={8} required disabled={busy} /><PasswordField id="confirm-password" name="confirmPassword" label="Повтори пароль" autoComplete="new-password" minLength={8} required disabled={busy} /><button className="primary full" disabled={busy || !db}>{busy ? t("Сохраняем…") : t("Сохранить пароль")}</button></form> : <p className="muted">{t("Эта ссылка истекла. Запроси новую ссылку для сброса пароля.")}</p>}{error && <p className="notice error" role="alert">{t(error)}</p>}{message && <p className="notice success" role="status">{t(message)}</p>}</div></main>;
+  if (!email) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{passwordResetMode ? t("Сброс пароля") : t("Результаты твоей команды")}</h1><p>{passwordResetMode ? t("Укажи почту аккаунта, чтобы получить ссылку для сброса пароля.") : t("Войди в аккаунт клуба.")}</p></header><div className="body">{passwordResetMode ? <><form onSubmit={requestPasswordReset}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy || passwordResetRequested} /></label><button className="primary full" disabled={busy || !db || passwordResetRequested}>{busy ? t("Отправляем…") : t("Отправить ссылку")}</button></form><button className="text-button full" type="button" disabled={busy} onClick={() => { setPasswordResetMode(false); setPasswordResetRequested(false); setError(''); setMessage(''); }}>{t("Вернуться ко входу")}</button></> : <form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><PasswordField id="login-password" name="password" label="Пароль" autoComplete="current-password" required disabled={busy} /><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button><button className="text-button full" type="button" disabled={busy} onClick={() => { setPasswordResetMode(true); setPasswordResetRequested(false); setError(''); setMessage(''); }}>{t("Забыли пароль?")}</button></form>}{error && <p className="notice error" role="alert">{t(error)}</p>}{message && <p className="notice success" role="status">{t(message)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
   return <main><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu disabled={busy} onLogout={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }} /></div></div><h1 className="portal-heading">{club ? (staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")) : t("Нет доступа к клубу")}</h1><small className="account-identity">{identity}</small></header><div className="body">
     {!club ? <div className="empty">{t("У аккаунта нет активного доступа. Обратись к администратору клуба.")}</div> : <>
       {clubs.length > 1 && <label>{t("Клуб")}<select value={clubId} disabled={busy} onChange={e => setClubId(e.target.value)}>{clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
@@ -463,9 +563,7 @@ function ClubPortal() {
       {visibleTab === 'athletes' && staff && <>
         <h2>{t("Спортсмены клуба")}</h2>
         {selectedAthlete && <section ref={athleteHistoryRef} className="card athlete-history"><div className="section-heading"><h3><RatingAthleteName firstName={selectedAthlete.first_name} lastName={selectedAthlete.last_name} /></h3><button type="button" onClick={() => setSelectedAthleteId('')}>{t("Закрыть")}</button></div><h4>{t("История стартов")}</h4>{selectedAthleteHistory.length ? <div className="table-scroll"><table className="athlete-history-table"><thead><tr><th>{t("Дата")}</th><th>{t("Тест")}</th><th>{t("Результат")}</th></tr></thead><tbody>{selectedAthleteHistory.map((row, i) => <tr key={row.eventId + row.date + i}><td>{dateLabel(row.date)}</td><td>{category(row.definitionId)}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table></div> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>}
-        <h3>{t("Активные спортсмены")}</h3>
-        <ul className="list">{activeAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul>
-        {!activeAthletes.length && <p className="empty">{t("Активных спортсменов нет.")}</p>}
+        <details className="active-athletes-section"><summary>{t("Активные спортсмены")} ({activeAthletes.length})</summary>{activeAthletes.length ? <ul className="list active-athletes-list">{activeAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul> : <p className="empty">{t("Активных спортсменов нет.")}</p>}</details>
         {inactiveAthletes.length > 0 && <details className="inactive-athletes-section"><summary>{t("Неактивные спортсмены")} ({inactiveAthletes.length})</summary><ul className="list inactive-athletes-list">{inactiveAthletes.map(a => <li key={a.id}><button type="button" className="athlete-link" aria-pressed={selectedAthleteId === a.id} onClick={() => setSelectedAthleteId(a.id)}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</button></li>)}</ul></details>}
         <details className="card"><summary>{t("Изменить спортсмена")}</summary>
           <label>{t("Спортсмен")}<select value={editAthleteId} onChange={e => setEditAthleteId(e.target.value)}><option value="">{t("Выбери спортсмена")}</option>{[...activeAthletes, ...inactiveAthletes].map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label>
@@ -476,6 +574,7 @@ function ClubPortal() {
           </ActionForm>}
         </details>
         <details className="card"><summary>{t("Добавить спортсмена")}</summary><ActionForm disabled={busy} label={t("Добавить")} onSubmit={f => command('CREATE_ATHLETE', { first_name: field(f, 'first'), last_name: field(f, 'last'), birth_date: field(f, 'birth') || null, sex: field(f, 'sex') || null })}><div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} /></label></div><div className="row"><label>{t("Дата рождения")}<input name="birth" type="date" /></label><label>{t("Пол")}<select name="sex"><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label></div><p className="muted">{t("Фамилию можно добавить позже.")} {t("Дата рождения доступна тренерам и самому спортсмену.")}</p></ActionForm></details>
+        <details className="card"><summary>{t("Пригласить спортсмена")}</summary>{athletesWithoutAccounts.length ? <ActionForm disabled={busy} label={t("Отправить приглашение")} onSubmit={sendAthleteInvitation}><label>{t("Спортсмен")}<select name="athlete" value={inviteAthleteId} onChange={e => setInviteAthleteId(e.target.value)} required><option value="">{t("Выбери спортсмена")}</option>{athletesWithoutAccounts.map(a => <option key={a.id} value={a.id}>{[a.last_name, a.first_name].filter(Boolean).join(' ')}</option>)}</select></label><label>{t("Почта спортсмена")}<input name="email" type="email" required autoComplete="email" placeholder="name@example.com" /></label><p className="muted">{t("Спортсмен получит письмо со ссылкой для создания пароля. Карточка спортсмена будет связана с его аккаунтом.")}</p></ActionForm> : <p className="empty">{t("У всех спортсменов уже есть аккаунты клуба.")}</p>}</details>
       </>}
       {visibleTab === 'catalog' && administrator && <>
         <h2>{t("Тесты")}</h2>
@@ -585,3 +684,4 @@ function ResultEditor({ result, segments, triathlon, replacedSwim, entryId, publ
     const saved = await command('SAVE_RESULT', payload); if (saved) setEditing(false); return saved;
   }}><label className="check"><input type="checkbox" checked={hours} onChange={e => { const on = e.target.checked; setHours(on); setValue(current => on ? (current ? '00:' + current : '') : current.replace(/^\d{2}:/, '')); }} />{t("Добавить часы")}</label><label>{t("Время")}<input aria-invalid={!!value && !timeValid} aria-describedby={`time-help-${entryId}`} inputMode="numeric" placeholder={hours ? t("чч:мм:сс.сс") : t("мм:сс.сс")} value={value} onChange={e => setValue(maskTime(e.target.value, hours))} /></label><p className="muted" id={`time-help-${entryId}`}>{value && !timeValid ? t("Заполни все цифры; минуты и секунды 00–59, часы 00–23, время больше нуля.") : t("Сотые доли секунды; разделители добавляются автоматически.")}</p>{triathlon && <fieldset className="stage-editor"><legend>{t('Этапы триатлона')}</legend>{(['SWIM', 'T1', 'BIKE', 'T2', 'RUN'] as const).map(code => <label key={code}>{stageLabels[code]}<input inputMode="numeric" placeholder={t('мм:сс.сс')} value={stageValues[code] ?? ''} onChange={e => { const digits = e.target.value.replace(/\D/g, ''); const withHours = digits.length > 6; setStageValues(v => ({ ...v, [code]: maskTime(e.target.value, withHours) })); }} /></label>)}</fieldset>}{published && <label>{t("Причина исправления")}<input name="reason" required maxLength={500} /></label>}</ActionForm><button style={{ marginTop: 10 }} disabled={busy} onClick={() => { setEditing(false); setValue(result?.time_cs ? formatTime(result.time_cs) : ''); setHours((result?.time_cs ?? 0) >= 360000); setStageValues(Object.fromEntries(segments.map(s => [s.segment_code, formatTime(s.time_cs)]))); }}>{t("Отмена")}</button></div>;
 }
+

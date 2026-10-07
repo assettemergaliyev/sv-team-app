@@ -47,3 +47,4 @@ export function friendlyError(error: unknown) {
   ];
   return known.find(([match]) => message.includes(match))?.[1] ?? message;
 }
+

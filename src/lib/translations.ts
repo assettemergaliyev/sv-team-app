@@ -147,6 +147,15 @@ export const translations: Record<string, { en: string; kk: string }> = {
     "en": "Sign in",
     "kk": "Кіру"
   },
+  "Забыли пароль?": {"en": "Forgot password?", "kk": "Құпиясөзді ұмыттыңыз ба?"},
+  "Вернуться ко входу": {"en": "Back to sign in", "kk": "Кіру бетіне оралу"},
+  "Сброс пароля": {"en": "Reset password", "kk": "Құпиясөзді қалпына келтіру"},
+  "Укажи почту аккаунта, чтобы получить ссылку для сброса пароля.": {"en": "Enter your account email to get a password reset link.", "kk": "Құпиясөзді қалпына келтіру сілтемесін алу үшін аккаунт поштаңызды енгізіңіз."},
+  "Отправить ссылку": {"en": "Send link", "kk": "Сілтемені жіберу"},
+  "Отправляем…": {"en": "Sending…", "kk": "Жіберілуде…"},
+  "Если аккаунт с этой почтой существует, ссылка для сброса пароля отправлена.": {"en": "If an account exists for this email, a password reset link has been sent.", "kk": "Бұл поштаға тіркелген аккаунт болса, құпиясөзді қалпына келтіру сілтемесі жіберілді."},
+  "Создать новый пароль": {"en": "Create a new password", "kk": "Жаңа құпиясөз жасау"},
+  "Эта ссылка истекла. Запроси новую ссылку для сброса пароля.": {"en": "This link has expired. Request a new password reset link.", "kk": "Бұл сілтеменің мерзімі өтті. Құпиясөзді қалпына келтіру үшін жаңа сілтеме сұраңыз."},
   "Время": {
     "en": "Time",
     "kk": "Уақыт"
@@ -335,6 +344,14 @@ export const translations: Record<string, { en: string; kk: string }> = {
   "Пароль": {
     "en": "Password",
     "kk": "Құпиясөз"
+  },
+  "Показать пароль": {
+    "en": "Show password",
+    "kk": "Құпиясөзді көрсету"
+  },
+  "Скрыть пароль": {
+    "en": "Hide password",
+    "kk": "Құпиясөзді жасыру"
   },
   "Плавание": {
     "en": "Swimming",
@@ -615,8 +632,25 @@ export const translations: Record<string, { en: string; kk: string }> = {
 "Спортсмен создан, но не добавлен в список на выбранный день.": {"en": "Athlete was created but could not be added to the selected day's list.", "kk": "Спортшы жасалды, бірақ таңдалған күн тізіміне қосылмады."},
 "Список на этот день пуст. Найди спортсмена или добавь нового.": {"en": "The list for this day is empty. Find an athlete or add a new one.", "kk": "Бұл күннің тізімі бос. Спортшыны тауып немесе жаңасын қосыңыз."},
 "Спортсмен попадет в список выбранного дня. Посещение засчитается только после установки галочки.": {"en": "The athlete will be added to the selected day's list. The visit is counted only after you check the box.", "kk": "Спортшы таңдалған күн тізіміне қосылады. Қатысу белгі қойылғаннан кейін ғана есептеледі."},
+"Пригласить спортсмена": {"en": "Invite an athlete", "kk": "Спортшыны шақыру"},
+"Отправить приглашение": {"en": "Send invitation", "kk": "Шақыру жіберу"},
+"Почта спортсмена": {"en": "Athlete email", "kk": "Спортшының электрондық поштасы"},
+"Спортсмен получит письмо со ссылкой для создания пароля. Карточка спортсмена будет связана с его аккаунтом.": {"en": "The athlete will receive an email with a link to set a password. Their athlete profile will be linked to the account.", "kk": "Спортшы құпиясөз орнату сілтемесі бар хат алады. Спортшы профилі аккаунтпен байланысады."},
+"У всех спортсменов уже есть аккаунты клуба.": {"en": "All athletes already have club accounts.", "kk": "Барлық спортшының клуб аккаунты бар."},
+"Приглашение отправлено на {email}.": {"en": "Invitation sent to {email}.", "kk": "Шақыру {email} мекенжайына жіберілді."},
+"Добро пожаловать в SV Team": {"en": "Welcome to SV Team", "kk": "SV Team командасына қош келдіңіз"},
+"Задай пароль для своего аккаунта спортсмена.": {"en": "Set a password for your athlete account.", "kk": "Спортшы аккаунтыңызға құпиясөз орнатыңыз."},
+"Открой ссылку из письма-приглашения, чтобы продолжить.": {"en": "Open the link in your invitation email to continue.", "kk": "Жалғастыру үшін шақыру хатындағы сілтемені ашыңыз."},
+"Новый пароль": {"en": "New password", "kk": "Жаңа құпиясөз"},
+"Повтори пароль": {"en": "Confirm password", "kk": "Құпиясөзді қайталаңыз"},
+"Сохранить пароль": {"en": "Save password", "kk": "Құпиясөзді сақтау"},
+"Пароль должен содержать не менее 8 символов.": {"en": "Password must be at least 8 characters.", "kk": "Құпиясөз кемінде 8 таңбадан тұруы керек."},
+"Пароли не совпадают.": {"en": "Passwords do not match.", "kk": "Құпиясөздер сәйкес келмейді."},
+"Пароль сохранён. Добро пожаловать в SV Team!": {"en": "Password saved. Welcome to SV Team!", "kk": "Құпиясөз сақталды. SV Team командасына қош келдіңіз!"},
+"Если ссылка уже истекла, попроси тренера отправить приглашение повторно.": {"en": "If the link has expired, ask your coach to send a new invitation.", "kk": "Сілтеменің мерзімі өтсе, жаттықтырушыдан шақыруды қайта жіберуін сұраңыз."},
 
 "Удалить {name} из посещаемости за {date}? Отметка за этот день будет отменена. Профиль и остальные посещения сохранятся.": {"en": "Remove {name} from attendance for {date}? The visit for that day will be canceled. The athlete profile and other visits will remain.", "kk": "{name} спортшысын {date} күнгі қатысу тізімінен алып тастау керек пе? Сол күнгі белгі жойылады. Спортшының профилі мен басқа келулері сақталады."},
 "Убрать {name} из списка за {date}? Профиль и история посещений сохранятся.": {"en": "Remove {name} from the list for {date}? The athlete profile and attendance history will remain.", "kk": "{name} спортшысын {date} күн тізімінен алу керек пе? Спортшы профилі мен қатысу тарихы сақталады."},
 };
 export function translate(text: string, locale: Locale) { return locale === "ru" ? text : translations[text]?.[locale] ?? text; }
+
