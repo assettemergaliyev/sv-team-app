@@ -8,6 +8,7 @@ import { browserDatabase } from '@/lib/supabase';
 import { allRows, emptyBase, emptyEvent, friendlyError, localSessionISO, type BaseData, type EventData, type Club, type Row } from '@/lib/data';
 import { maskTime, parseTime, formatTime, dateLabel } from '@/lib/time';
 import { bestHistoryPerDefinition, buildHistoryResults, denseRank, historyWithPersonalBests, type HistoryResult, type HistorySource } from '@/lib/history';
+import { countVisits, countVisitsByDay, currentDateInTimezone, monthBounds } from '@/lib/attendance';
 
 // Typographic adaptation of the club shirt; replace with the official vector when available.
 function Brand() {
@@ -104,7 +105,12 @@ function ClubPortal() {
   const [historyAthleteId, setHistoryAthleteId] = useState('');
   const [selectedAthleteId, setSelectedAthleteId] = useState('');
   const [editAthleteId, setEditAthleteId] = useState('');
-  const [tab, setTab] = useState<'events' | 'athletes' | 'catalog' | 'rating'>('rating');
+  const [tab, setTab] = useState<'events' | 'athletes' | 'catalog' | 'attendance' | 'rating'>('rating');
+  const [attendanceDate, setAttendanceDate] = useState('');
+  const [attendanceRoster, setAttendanceRoster] = useState<Row<'pool_attendance_roster'>[]>([]);
+  const [attendanceVisits, setAttendanceVisits] = useState<Row<'pool_attendance'>[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceSearch, setAttendanceSearch] = useState('');
   const [newTestDiscipline, setNewTestDiscipline] = useState('SWIMMING');
   const [sessionId, setSessionId] = useState(''), [saving, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
   const [baseLoading, setBaseLoading] = useState(false), [eventLoading, setEventLoading] = useState(false);
@@ -157,6 +163,14 @@ function ClubPortal() {
     ]);
     return { athletes, definitions, events };
   }, []);
+  const fetchAttendance = useCallback(async (client: SupabaseClient<Database>, id: string, date: string) => {
+    const { start, end } = monthBounds(date.slice(0, 7));
+    const [roster, visits] = await Promise.all([
+      allRows((a, b) => client.from('pool_attendance_roster').select('*').eq('club_id', id).eq('is_active', true).order('created_at').order('athlete_id').range(a, b)),
+      allRows((a, b) => client.from('pool_attendance').select('*').eq('club_id', id).gte('visited_on', start).lt('visited_on', end).order('visited_on').order('athlete_id').range(a, b)),
+    ]);
+    return { roster, visits };
+  }, []);
   const fetchHistory = useCallback(async (client: SupabaseClient<Database>, id: string): Promise<HistorySource> => {
     const [sessions, participants, entries, attempts, personalBests] = await Promise.all([
       allRows((a, b) => client.from('test_sessions').select('id,event_id,scheduled_on,status').eq('club_id', id).order('scheduled_on', { ascending: false }).range(a, b)),
@@ -196,6 +210,23 @@ function ClubPortal() {
     if (db && clubId && eventId) void fetchEvent(db, clubId, eventId).then(d => { if (current) { setDetail(d); setSessionId(d.sessions.find(s => s.status !== 'CANCELLED')?.id ?? ''); } }).catch(e => { if (current) setError(friendlyError(e)); }).finally(() => { if (current) setEventLoading(false); });
     return () => { current = false; };
   }, [db, clubId, eventId, fetchEvent]);
+  useEffect(() => {
+    if (!club) return;
+    setAttendanceDate(currentDateInTimezone(club.timezone));
+  }, [clubId, club?.timezone]);
+  useEffect(() => {
+    let current = true;
+    if (db && clubId && attendanceDate) {
+      setAttendanceLoading(true);
+      void fetchAttendance(db, clubId, attendanceDate).then(data => {
+        if (current) { setAttendanceRoster(data.roster); setAttendanceVisits(data.visits); }
+      }).catch(err => { if (current) setError(friendlyError(err)); })
+        .finally(() => { if (current) setAttendanceLoading(false); });
+    } else {
+      setAttendanceRoster([]); setAttendanceVisits([]);
+    }
+    return () => { current = false; };
+  }, [db, clubId, attendanceDate, fetchAttendance]);
 
   const command: Command = async (action, payload) => {
     if (!db || !clubId || lock.current) return false;
@@ -222,6 +253,51 @@ function ClubPortal() {
       return true;
     } catch (err) { setError(friendlyError(err)); return false; }
     finally { lock.current = false; setBusy(false); }
+  };
+  const mutateAttendance = async (action: 'MARK_POOL_VISIT' | 'UNMARK_POOL_VISIT' | 'SET_POOL_ROSTER_ACTIVE', payload: Record<string, Json>, successMessage = 'Посещение отмечено.') => {
+    if (!db || !clubId || lock.current) return false;
+    lock.current = true; setBusy(true); setError(''); setMessage('');
+    try {
+      const { error: actionError } = await db.rpc('pool_attendance_command', {
+        p_club: clubId, p_action: action, p_payload: payload, p_request: crypto.randomUUID(),
+      });
+      if (actionError) throw new Error(actionError.message);
+      const updated = await fetchAttendance(db, clubId, attendanceDate);
+      setAttendanceRoster(updated.roster); setAttendanceVisits(updated.visits); setMessage(successMessage);
+      return true;
+    } catch (err) { setError(friendlyError(err)); return false; }
+    finally { lock.current = false; setBusy(false); }
+  };
+  const createAndMarkAttendanceAthlete = async (form: FormData) => {
+    if (!db || !clubId || lock.current) return false;
+    lock.current = true; setBusy(true); setError(''); setMessage('');
+    let athleteId = '';
+    try {
+      const { data, error: createError } = await db.rpc('sv_command', {
+        p_club: clubId,
+        p_action: 'CREATE_ATHLETE',
+        p_payload: { first_name: field(form, 'attendance_first'), last_name: field(form, 'attendance_last'), birth_date: field(form, 'attendance_birth') || null, sex: field(form, 'attendance_sex') || null },
+        p_request: crypto.randomUUID(),
+      });
+      if (createError) throw new Error(createError.message);
+      athleteId = (data as { id?: string } | null)?.id ?? '';
+      if (!athleteId) throw new Error('Athlete was created without an ID.');
+      const { error: attendanceError } = await db.rpc('pool_attendance_command', {
+        p_club: clubId, p_action: 'MARK_POOL_VISIT', p_payload: { athlete_id: athleteId, visited_on: attendanceDate }, p_request: crypto.randomUUID(),
+      });
+      if (attendanceError) throw new Error('Спортсмен создан, но посещение не удалось сохранить.');
+      const [updatedBase, updatedAttendance] = await Promise.all([fetchBase(db, clubId), fetchAttendance(db, clubId, attendanceDate)]);
+      setBase(updatedBase); setAttendanceRoster(updatedAttendance.roster); setAttendanceVisits(updatedAttendance.visits);
+      setAttendanceSearch(''); setMessage('Спортсмен добавлен, посещение отмечено.');
+      return true;
+    } catch (err) {
+      if (athleteId) {
+        try { setBase(await fetchBase(db, clubId)); } catch { /* Keep the creation error visible. */ }
+        if (String(err).includes('Спортсмен создан')) { setError('Спортсмен создан, но посещение не удалось сохранить.'); return true; }
+        else setError(friendlyError(err));
+      } else setError(friendlyError(err));
+      return false;
+    } finally { lock.current = false; setBusy(false); }
   };
   async function login(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); if (!db || lock.current) return;
@@ -298,14 +374,61 @@ function ClubPortal() {
   const bySurname = (a: Row<'athletes'>, b: Row<'athletes'>) => a.last_name.localeCompare(b.last_name, locale) || a.first_name.localeCompare(b.first_name, locale);
   const activeAthletes = base.athletes.filter(a => a.sport_status === 'ACTIVE').sort(bySurname);
   const inactiveAthletes = base.athletes.filter(a => a.sport_status !== 'ACTIVE').sort(bySurname);
+  const attendanceRosterIds = new Set(attendanceRoster.map(row => row.athlete_id));
+  const visitsForSelectedDay = attendanceVisits.filter(row => row.visited_on === attendanceDate);
+  const selectedDayAthleteIds = new Set(visitsForSelectedDay.map(row => row.athlete_id));
+  const attendanceAthleteIds = [...new Set([...attendanceRoster.map(row => row.athlete_id), ...visitsForSelectedDay.map(row => row.athlete_id)])];
+  const attendanceAthletes = attendanceAthleteIds.map(id => athleteById.get(id)).filter((a): a is Row<'athletes'> => !!a).sort(bySurname);
+  const attendanceDayCounts = countVisitsByDay(attendanceVisits);
+  const attendanceMonthTotal = countVisits(attendanceVisits);
+  const attendanceSearchMatches = attendanceSearch.trim().length >= 2
+    ? base.athletes.filter(a => !attendanceRosterIds.has(a.id) && `${a.first_name} ${a.last_name}`.toLocaleLowerCase(locale).includes(attendanceSearch.trim().toLocaleLowerCase(locale))).sort(bySurname).slice(0, 8)
+    : [];
   const athleteToEdit = base.athletes.find(a => a.id === editAthleteId);
   if (checking) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{t("Проверяем вход…")}</h1></header></main>;
   if (!email) return <main className="login"><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu /></div></div><h1>{t("Результаты твоей команды")}</h1><p>{t("Войди в аккаунт клуба.")}</p></header><div className="body"><form onSubmit={login}><label>{t("Почта")}<input name="email" type="email" autoComplete="username" required disabled={busy} /></label><label>{t("Пароль")}<input name="password" type="password" autoComplete="current-password" required disabled={busy} /></label><button className="primary full" disabled={busy || !db}>{busy ? t("Входим…") : t("Войти")}</button></form>{error && <p className="notice error" role="alert">{t(error)}</p>}<p className="muted">{t("Доступ по приглашению клуба.")}</p></div></main>;
   return <main><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu disabled={busy} onLogout={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }} /></div></div><h1 className="portal-heading">{club ? (staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")) : t("Нет доступа к клубу")}</h1><small className="account-identity">{identity}</small></header><div className="body">
     {!club ? <div className="empty">{t("У аккаунта нет активного доступа. Обратись к администратору клуба.")}</div> : <>
       {clubs.length > 1 && <label>{t("Клуб")}<select value={clubId} disabled={busy} onChange={e => setClubId(e.target.value)}>{clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
-      <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button></>}</nav>
+      <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'attendance'} onClick={() => setTab('attendance')}>{t("Посещаемость")}</button><button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button></>}</nav>
       <div className="working" role="status" aria-live="polite">{busy ? t("Сохраняем…") : t(message)}</div>{error && <p className="notice error" role="alert">{t(error)}</p>}
+      {visibleTab === 'attendance' && staff && <>
+        <h2>{t("Посещаемость бассейна")}</h2>
+        <p className="muted">{t("Отметь пришедших спортсменов. Список общий для тренеров.")}</p>
+        <section className="card attendance-card">
+          <div className="attendance-toolbar">
+            <label>{t("Дата")}<input type="date" value={attendanceDate} max={club ? currentDateInTimezone(club.timezone) : undefined} onChange={e => setAttendanceDate(e.target.value)} /></label>
+            <div className="attendance-total"><span>{t("Посещений за день")}</span><strong>{countVisits(visitsForSelectedDay)}</strong></div>
+          </div>
+          {attendanceLoading ? <p className="empty">{t("Загружаем…")}</p> : attendanceAthletes.length ? <ul className="attendance-list">
+            {attendanceAthletes.map(athlete => {
+              const visit = visitsForSelectedDay.find(row => row.athlete_id === athlete.id);
+              const rosterMember = attendanceRosterIds.has(athlete.id);
+              return <li key={athlete.id}>
+                <label className="attendance-person"><input type="checkbox" checked={!!visit?.is_counted} disabled={busy} onChange={e => void mutateAttendance(e.target.checked ? 'MARK_POOL_VISIT' : 'UNMARK_POOL_VISIT', { athlete_id: athlete.id, visited_on: attendanceDate })} /><span>{[athlete.last_name, athlete.first_name].filter(Boolean).join(' ')}</span></label>
+                {rosterMember && <button type="button" className="attendance-remove" disabled={busy} aria-label={`${t('Убрать из актуального списка')}: ${athlete.first_name} ${athlete.last_name}`} title={t('Убрать из актуального списка')} onClick={() => { if (window.confirm(t('Убрать спортсмена из актуального списка? История посещений сохранится.'))) void mutateAttendance('SET_POOL_ROSTER_ACTIVE', { athlete_id: athlete.id, is_active: false }); }}>×</button>}
+              </li>;
+            })}
+          </ul> : <p className="empty">{t("Пока нет актуальных спортсменов. Найди спортсмена в истории или добавь нового.")}</p>}
+        </section>
+        <details className="card attendance-search">
+          <summary>{t("Найти спортсмена в истории")}</summary>
+          <label>{t("Спортсмен")}<input type="search" value={attendanceSearch} onChange={e => setAttendanceSearch(e.target.value)} placeholder={t("Выбери спортсмена из истории")} /></label>
+          {attendanceSearch.trim().length >= 2 && <ul className="attendance-search-results">{attendanceSearchMatches.map(athlete => <li key={athlete.id}><span>{[athlete.last_name, athlete.first_name].filter(Boolean).join(' ')}</span><button type="button" className="primary" disabled={busy} onClick={async () => { if (await mutateAttendance('MARK_POOL_VISIT', { athlete_id: athlete.id, visited_on: attendanceDate })) setAttendanceSearch(''); }}>{t("Добавить и отметить")}</button></li>)}{attendanceSearchMatches.length === 0 && <li className="muted">{t("Спортсмен не найден.")}</li>}</ul>}
+        </details>
+        <details className="card attendance-search">
+          <summary>{t("Новый спортсмен")}</summary>
+          <ActionForm disabled={busy} label={t("Добавить и отметить")} onSubmit={createAndMarkAttendanceAthlete}>
+            <div className="row"><label>{t("Имя")}<input name="attendance_first" required maxLength={100} /></label><label>{t("Фамилия")}<input name="attendance_last" maxLength={100} /></label></div>
+            <div className="row"><label>{t("Дата рождения")}<input name="attendance_birth" type="date" /></label><label>{t("Пол")}<select name="attendance_sex"><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label></div>
+          </ActionForm>
+        </details>
+        <section className="card attendance-month">
+          <h3>{t("Посещения за месяц")} · {attendanceDate.slice(0, 7)}</h3>
+          <div className="attendance-month-total"><span>{t("Всего посещений")}</span><strong>{attendanceMonthTotal}</strong></div>
+          {attendanceDayCounts.length ? <div className="table-scroll"><table><thead><tr><th>{t("Дата")}</th><th>{t("Посещений за день")}</th></tr></thead><tbody>{attendanceDayCounts.slice().reverse().map(day => <tr key={day.date}><td>{dateLabel(day.date)}</td><td className="num">{day.count}</td></tr>)}</tbody></table></div> : <p className="empty">{t("В этом месяце посещений пока нет.")}</p>}
+        </section>
+      </>}
       {visibleTab === 'athletes' && staff && <>
         <h2>{t("Спортсмены клуба")}</h2>
         {selectedAthlete && <section ref={athleteHistoryRef} className="card athlete-history"><div className="section-heading"><h3><RatingAthleteName firstName={selectedAthlete.first_name} lastName={selectedAthlete.last_name} /></h3><button type="button" onClick={() => setSelectedAthleteId('')}>{t("Закрыть")}</button></div><h4>{t("История стартов")}</h4>{selectedAthleteHistory.length ? <div className="table-scroll"><table className="athlete-history-table"><thead><tr><th>{t("Дата")}</th><th>{t("Тест")}</th><th>{t("Результат")}</th></tr></thead><tbody>{selectedAthleteHistory.map((row, i) => <tr key={row.eventId + row.date + i}><td>{dateLabel(row.date)}</td><td>{category(row.definitionId)}</td><td className="num">{formatTime(row.timeCs)}</td></tr>)}</tbody></table></div> : <p className="empty">{t("Опубликованных результатов пока нет.")}</p>}</section>}

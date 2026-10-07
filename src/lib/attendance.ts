@@ -1,0 +1,33 @@
+export type PoolVisit = { visited_on: string; is_counted: boolean };
+
+export function currentDateInTimezone(timezone: string, now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function monthBounds(month: string) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  if (!year || !monthNumber || monthNumber < 1 || monthNumber > 12) throw new Error('Invalid month');
+  const start = `${year}-${String(monthNumber).padStart(2, '0')}-01`;
+  const nextMonth = new Date(Date.UTC(year, monthNumber, 1));
+  const end = `${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, '0')}-01`;
+  return { start, end };
+}
+
+export function countVisits(visits: PoolVisit[]) {
+  return visits.reduce((total, visit) => total + (visit.is_counted ? 1 : 0), 0);
+}
+
+export function countVisitsByDay(visits: PoolVisit[]) {
+  const counts = new Map<string, number>();
+  for (const visit of visits) {
+    if (visit.is_counted) counts.set(visit.visited_on, (counts.get(visit.visited_on) ?? 0) + 1);
+  }
+  return [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }));
+}
