@@ -120,6 +120,7 @@ function ClubPortal() {
   const lock = useRef(false), generation = useRef(0), requests = useRef(new Map<string, string>());
   const athleteHistoryRef = useRef<HTMLElement | null>(null);
   const club = clubs.find(c => c.id === clubId), staff = club?.role === 'ADMIN' || club?.role === 'COACH';
+  const administrator = club?.role === 'ADMIN';
   const event = base.events.find(e => e.id === eventId), session = detail.sessions.find(s => s.id === sessionId);
 
   useEffect(() => {
@@ -330,7 +331,7 @@ function ClubPortal() {
   const linkedAthlete = base.athletes.find(a => a.id === accountLinks.find(l => l.club_id === clubId && l.user_id === userId)?.athlete_id);
   const identity = club?.role === 'ADMIN' ? t('Администратор') : club?.role === 'COACH' ? (profileName ? `${profileName} · ${t('Тренер')}` : t('Тренер')) : linkedAthlete ? [linkedAthlete.first_name, linkedAthlete.last_name].filter(Boolean).join(' ') : profileName || t('Спортсмен');
   const statusAction = (action: string, id: string, revision: number) => command(action, { id, expected_revision: revision });
-  const visibleTab = staff ? tab : 'rating';
+  const visibleTab = staff ? (administrator || tab !== 'catalog' ? tab : 'rating') : 'rating';
   const activeEntries = detail.entries.filter(sp => !sp.removed_at);
   const registeredAthletes = new Set(activeEntries.filter(sp => sp.session_id === sessionId).map(sp => detail.participants.find(p => p.id === sp.event_participant_id)?.athlete_id));
   const eventStartDate = (id: string) => historySource.sessions.filter(s => s.event_id === id && s.status === 'PUBLISHED').map(s => s.scheduled_on).sort().at(-1) ?? '';
@@ -409,7 +410,7 @@ function ClubPortal() {
   return <main><header><div className="header-toolbar"><Brand /><div className="header-actions"><AccountMenu disabled={busy} onLogout={async () => { const result = await db?.auth.signOut(); if (result?.error) setError(friendlyError(result.error.message)); }} /></div></div><h1 className="portal-heading">{club ? (staff ? t("Контрольные старты и результаты") : t("Опубликованные результаты клуба")) : t("Нет доступа к клубу")}</h1><small className="account-identity">{identity}</small></header><div className="body">
     {!club ? <div className="empty">{t("У аккаунта нет активного доступа. Обратись к администратору клуба.")}</div> : <>
       {clubs.length > 1 && <label>{t("Клуб")}<select value={clubId} disabled={busy} onChange={e => setClubId(e.target.value)}>{clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
-      <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'attendance'} onClick={() => setTab('attendance')}>{t("Посещаемость")}</button><button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button></>}</nav>
+      <nav className="tabs" aria-label={t("Разделы")}><button aria-pressed={visibleTab === 'rating'} onClick={() => setTab('rating')}>{t("Рейтинг")}</button>{staff && <><button aria-pressed={visibleTab === 'events'} onClick={() => setTab('events')}>{t("Старты")}</button><button aria-pressed={visibleTab === 'athletes'} onClick={() => setTab('athletes')}>{t("Спортсмены")}</button><button aria-pressed={visibleTab === 'attendance'} onClick={() => setTab('attendance')}>{t("Посещаемость")}</button>{administrator && <button aria-pressed={visibleTab === 'catalog'} onClick={() => setTab('catalog')}>{t("Тесты")}</button>}</>}</nav>
       <div className="working" role="status" aria-live="polite">{busy ? t("Сохраняем…") : t(message)}</div>{error && <p className="notice error" role="alert">{t(error)}</p>}
       {visibleTab === 'attendance' && staff && <>
         <h2>{t("Посещаемость бассейна")}</h2>
@@ -478,7 +479,7 @@ function ClubPortal() {
         </details>
         <details className="card"><summary>{t("Добавить спортсмена")}</summary><ActionForm disabled={busy} label={t("Добавить")} onSubmit={f => command('CREATE_ATHLETE', { first_name: field(f, 'first'), last_name: field(f, 'last'), birth_date: field(f, 'birth') || null, sex: field(f, 'sex') || null })}><div className="row"><label>{t("Имя")}<input name="first" required maxLength={100} /></label><label>{t("Фамилия")}<input name="last" maxLength={100} /></label></div><div className="row"><label>{t("Дата рождения")}<input name="birth" type="date" /></label><label>{t("Пол")}<select name="sex"><option value="">{t("Не указан")}</option><option value="M">{t("Мужской")}</option><option value="F">{t("Женский")}</option></select></label></div><p className="muted">{t("Фамилию можно добавить позже.")} {t("Дата рождения доступна тренерам и самому спортсмену.")}</p></ActionForm></details>
       </>}
-      {visibleTab === 'catalog' && staff && <>
+      {visibleTab === 'catalog' && administrator && <>
         <h2>{t("Тесты")}</h2>
         <div className="cards"><section className="card">
           <h3>{t("Контрольные тесты")}</h3>
@@ -486,7 +487,7 @@ function ClubPortal() {
             if (!db || !clubId || !window.confirm(t("Удалить этот тест из каталога? Его результаты останутся в журнале."))) return;
             setBusy(true); setError('');
             try {
-              const { error: archiveError } = await db.rpc('archive_test_definition', { p_club: clubId, p_definition: d.id, p_reason: 'Удаление теста из каталога по запросу администратора или тренера' });
+              const { error: archiveError } = await db.rpc('archive_test_definition', { p_club: clubId, p_definition: d.id, p_reason: 'Удаление теста из каталога по запросу администратора' });
               if (archiveError) throw new Error(archiveError.message);
               const [updatedBase, updatedHistory] = await Promise.all([fetchBase(db, clubId), fetchHistory(db, clubId)]);
               setBase(updatedBase); setHistorySource(updatedHistory); setMessage("Тест удалён из каталога.");
