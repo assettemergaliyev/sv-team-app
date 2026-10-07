@@ -187,6 +187,105 @@ export type Database = {
           },
         ]
       }
+      pool_attendance: {
+        Row: {
+          athlete_id: string
+          club_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_counted: boolean
+          revision: number
+          updated_at: string
+          updated_by: string | null
+          visited_on: string
+        }
+        Insert: {
+          athlete_id: string
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_counted?: boolean
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+          visited_on: string
+        }
+        Update: {
+          athlete_id?: string
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_counted?: boolean
+          revision?: number
+          updated_at?: string
+          updated_by?: string | null
+          visited_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_attendance_club_id_athlete_id_fkey"
+            columns: ["club_id", "athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["club_id", "id"]
+          },
+          {
+            foreignKeyName: "pool_attendance_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_attendance_roster: {
+        Row: {
+          athlete_id: string
+          club_id: string
+          created_at: string
+          created_by: string | null
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          athlete_id: string
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_attendance_roster_club_id_athlete_id_fkey"
+            columns: ["club_id", "athlete_id"]
+            isOneToOne: true
+            referencedRelation: "athletes"
+            referencedColumns: ["club_id", "id"]
+          },
+          {
+            foreignKeyName: "pool_attendance_roster_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attempt_segments: {
         Row: {
           attempt_id: string
@@ -964,6 +1063,15 @@ export type Database = {
         Returns: Json
       }
       sv_command: {
+        Args: {
+          p_action: string
+          p_club: string
+          p_payload: Json
+          p_request: string
+        }
+        Returns: Json
+      }
+      pool_attendance_command: {
         Args: {
           p_action: string
           p_club: string
