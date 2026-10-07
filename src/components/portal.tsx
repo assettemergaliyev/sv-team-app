@@ -8,7 +8,7 @@ import { browserDatabase } from '@/lib/supabase';
 import { allRows, emptyBase, emptyEvent, friendlyError, localSessionISO, type BaseData, type EventData, type Club, type Row } from '@/lib/data';
 import { maskTime, parseTime, formatTime, dateLabel } from '@/lib/time';
 import { bestHistoryPerDefinition, buildHistoryResults, denseRank, historyWithPersonalBests, type HistoryResult, type HistorySource } from '@/lib/history';
-import { countVisits, countVisitsByDay, currentDateInTimezone, monthBounds } from '@/lib/attendance';
+import { countVisits, countVisitsByDay, currentDateInTimezone, formatPoolDate, maskPoolDate, monthBounds, monthLabel, parsePoolDate } from '@/lib/attendance';
 
 // Typographic adaptation of the club shirt; replace with the official vector when available.
 function Brand() {
@@ -107,6 +107,8 @@ function ClubPortal() {
   const [editAthleteId, setEditAthleteId] = useState('');
   const [tab, setTab] = useState<'events' | 'athletes' | 'catalog' | 'attendance' | 'rating'>('rating');
   const [attendanceDate, setAttendanceDate] = useState('');
+  const [attendanceDateText, setAttendanceDateText] = useState('');
+  const attendanceDatePickerRef = useRef<HTMLInputElement | null>(null);
   const [attendanceRoster, setAttendanceRoster] = useState<Row<'pool_attendance_roster'>[]>([]);
   const [attendanceVisits, setAttendanceVisits] = useState<Row<'pool_attendance'>[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -212,7 +214,9 @@ function ClubPortal() {
   }, [db, clubId, eventId, fetchEvent]);
   useEffect(() => {
     if (!club) return;
-    setAttendanceDate(currentDateInTimezone(club.timezone));
+    const today = currentDateInTimezone(club.timezone);
+    setAttendanceDate(today);
+    setAttendanceDateText(formatPoolDate(today));
   }, [clubId, club?.timezone]);
   useEffect(() => {
     let current = true;
@@ -267,6 +271,21 @@ function ClubPortal() {
       return true;
     } catch (err) { setError(friendlyError(err)); return false; }
     finally { lock.current = false; setBusy(false); }
+  };
+  const removeAttendanceAthlete = async (athlete: Row<'athletes'>, hasCountedVisit: boolean, isRosterMember: boolean) => {
+    const date = formatPoolDate(attendanceDate);
+    const prompt = hasCountedVisit
+      ? t('Удалить спортсмена из посещаемости и отменить отметку за {date}? Карточка спортсмена останется в базе клуба. Исправление сохранится в истории.').replace('{date}', date)
+      : t('Убрать спортсмена из актуального списка? История посещений сохранится.');
+    if (!window.confirm(prompt)) return;
+    if (hasCountedVisit) {
+      const unmarked = await mutateAttendance('UNMARK_POOL_VISIT', { athlete_id: athlete.id, visited_on: attendanceDate }, 'Отметка за выбранную дату снята. Исправление сохранено в истории.');
+      if (!unmarked) return;
+    }
+    if (!isRosterMember) return;
+    await mutateAttendance('SET_POOL_ROSTER_ACTIVE', { athlete_id: athlete.id, is_active: false }, hasCountedVisit
+      ? 'Посещение отменено, спортсмен убран из списка. История исправления сохранена.'
+      : 'Спортсмен убран из актуального списка. История посещений сохранена.');
   };
   const createAndMarkAttendanceAthlete = async (form: FormData) => {
     if (!db || !clubId || lock.current) return false;
@@ -376,8 +395,8 @@ function ClubPortal() {
   const inactiveAthletes = base.athletes.filter(a => a.sport_status !== 'ACTIVE').sort(bySurname);
   const attendanceRosterIds = new Set(attendanceRoster.map(row => row.athlete_id));
   const visitsForSelectedDay = attendanceVisits.filter(row => row.visited_on === attendanceDate);
-  const selectedDayAthleteIds = new Set(visitsForSelectedDay.map(row => row.athlete_id));
-  const attendanceAthleteIds = [...new Set([...attendanceRoster.map(row => row.athlete_id), ...visitsForSelectedDay.map(row => row.athlete_id)])];
+  const countedVisitsForSelectedDay = visitsForSelectedDay.filter(row => row.is_counted);
+  const attendanceAthleteIds = [...new Set([...attendanceRoster.map(row => row.athlete_id), ...countedVisitsForSelectedDay.map(row => row.athlete_id)])];
   const attendanceAthletes = attendanceAthleteIds.map(id => athleteById.get(id)).filter((a): a is Row<'athletes'> => !!a).sort(bySurname);
   const attendanceDayCounts = countVisitsByDay(attendanceVisits);
   const attendanceMonthTotal = countVisits(attendanceVisits);
@@ -397,7 +416,20 @@ function ClubPortal() {
         <p className="muted">{t("Отметь пришедших спортсменов. Список общий для тренеров.")}</p>
         <section className="card attendance-card">
           <div className="attendance-toolbar">
-            <label>{t("Дата")}<input type="date" value={attendanceDate} max={club ? currentDateInTimezone(club.timezone) : undefined} onChange={e => setAttendanceDate(e.target.value)} /></label>
+            <label>{t("Дата")}<div className="attendance-date-control">
+              <input type="text" inputMode="numeric" autoComplete="off" placeholder={t("ДД.ММ.ГГГГ")} aria-label={`${t("Дата")}, ${t("ДД.ММ.ГГГГ")}`} value={attendanceDateText} onChange={e => {
+                const value = maskPoolDate(e.target.value);
+                setAttendanceDateText(value);
+                const parsed = parsePoolDate(value);
+                if (parsed && (!club || parsed <= currentDateInTimezone(club.timezone))) setAttendanceDate(parsed);
+              }} onBlur={() => {
+                const parsed = parsePoolDate(attendanceDateText);
+                if (!parsed || (club && parsed > currentDateInTimezone(club.timezone))) setAttendanceDateText(formatPoolDate(attendanceDate));
+                else { setAttendanceDate(parsed); setAttendanceDateText(formatPoolDate(parsed)); }
+              }} />
+              <span className="attendance-calendar-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
+              <input ref={attendanceDatePickerRef} className="attendance-native-date" type="date" aria-label={t("Выбрать дату")} value={attendanceDate} max={club ? currentDateInTimezone(club.timezone) : undefined} onChange={e => { setAttendanceDate(e.target.value); setAttendanceDateText(formatPoolDate(e.target.value)); }} />
+            </div></label>
             <div className="attendance-total"><span>{t("Посещений за день")}</span><strong>{countVisits(visitsForSelectedDay)}</strong></div>
           </div>
           {attendanceLoading ? <p className="empty">{t("Загружаем…")}</p> : attendanceAthletes.length ? <ul className="attendance-list">
@@ -406,7 +438,7 @@ function ClubPortal() {
               const rosterMember = attendanceRosterIds.has(athlete.id);
               return <li key={athlete.id}>
                 <label className="attendance-person"><input type="checkbox" checked={!!visit?.is_counted} disabled={busy} onChange={e => void mutateAttendance(e.target.checked ? 'MARK_POOL_VISIT' : 'UNMARK_POOL_VISIT', { athlete_id: athlete.id, visited_on: attendanceDate })} /><span>{[athlete.last_name, athlete.first_name].filter(Boolean).join(' ')}</span></label>
-                {rosterMember && <button type="button" className="attendance-remove" disabled={busy} aria-label={`${t('Убрать из актуального списка')}: ${athlete.first_name} ${athlete.last_name}`} title={t('Убрать из актуального списка')} onClick={() => { if (window.confirm(t('Убрать спортсмена из актуального списка? История посещений сохранится.'))) void mutateAttendance('SET_POOL_ROSTER_ACTIVE', { athlete_id: athlete.id, is_active: false }); }}>×</button>}
+                {(rosterMember || visit?.is_counted) && <button type="button" className="attendance-remove" disabled={busy} aria-label={`${t('Убрать из списка посещаемости')}: ${athlete.first_name} ${athlete.last_name}`} title={t('Убрать из списка посещаемости')} onClick={() => void removeAttendanceAthlete(athlete, !!visit?.is_counted, rosterMember)}>×</button>}
               </li>;
             })}
           </ul> : <p className="empty">{t("Пока нет актуальных спортсменов. Найди спортсмена в истории или добавь нового.")}</p>}
@@ -424,7 +456,7 @@ function ClubPortal() {
           </ActionForm>
         </details>
         <section className="card attendance-month">
-          <h3>{t("Посещения за месяц")} · {attendanceDate.slice(0, 7)}</h3>
+          <h3>{t("Посещения за месяц")} · {monthLabel(attendanceDate.slice(0, 7), locale)}</h3>
           <div className="attendance-month-total"><span>{t("Всего посещений")}</span><strong>{attendanceMonthTotal}</strong></div>
           {attendanceDayCounts.length ? <div className="table-scroll"><table><thead><tr><th>{t("Дата")}</th><th>{t("Посещений за день")}</th></tr></thead><tbody>{attendanceDayCounts.slice().reverse().map(day => <tr key={day.date}><td>{dateLabel(day.date)}</td><td className="num">{day.count}</td></tr>)}</tbody></table></div> : <p className="empty">{t("В этом месяце посещений пока нет.")}</p>}
         </section>
