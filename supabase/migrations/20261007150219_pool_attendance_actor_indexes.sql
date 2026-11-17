@@ -1,0 +1,4 @@
+create index pool_attendance_created_by_idx on public.pool_attendance(created_by);
+create index pool_attendance_updated_by_idx on public.pool_attendance(updated_by);
+create index pool_attendance_roster_created_by_idx on public.pool_attendance_roster(created_by);
+create index pool_attendance_roster_updated_by_idx on public.pool_attendance_roster(updated_by);
