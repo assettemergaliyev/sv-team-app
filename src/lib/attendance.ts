@@ -1,4 +1,19 @@
-export type PoolVisit = { visited_on: string; is_counted: boolean };
+export type PoolSessionType = 'MORNING' | 'EVENING' | 'TRIAL' | 'UNSPECIFIED';
+export const poolSessionTypes: PoolSessionType[] = ['MORNING', 'EVENING', 'TRIAL', 'UNSPECIFIED'];
+export type PoolVisit = {
+  visited_on: string;
+  is_counted: boolean;
+  session_type?: string | null;
+  athlete_id?: string | null;
+  guest_name?: string | null;
+};
+export type PoolSessionCounts = Record<PoolSessionType, number>;
+export type PoolDayCounts = PoolSessionCounts & { date: string; count: number };
+
+export function poolSessionType(visit: PoolVisit): PoolSessionType {
+  const type = visit.session_type;
+  return type && poolSessionTypes.includes(type as PoolSessionType) ? type as PoolSessionType : 'UNSPECIFIED';
+}
 
 export function formatPoolDate(date: string) {
   const [year, month, day] = date.split('-');
@@ -52,22 +67,39 @@ export function countVisits(visits: PoolVisit[]) {
   return visits.reduce((total, visit) => total + (visit.is_counted ? 1 : 0), 0);
 }
 
-export function countVisitsByDay(visits: PoolVisit[]) {
-  const counts = new Map<string, number>();
+export function countVisitsBySessionType(visits: PoolVisit[], date?: string): PoolSessionCounts {
+  const counts: PoolSessionCounts = { MORNING: 0, EVENING: 0, TRIAL: 0, UNSPECIFIED: 0 };
   for (const visit of visits) {
-    if (visit.is_counted) counts.set(visit.visited_on, (counts.get(visit.visited_on) ?? 0) + 1);
+    if (visit.is_counted && (!date || visit.visited_on === date)) counts[poolSessionType(visit)] += 1;
   }
-  return [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }));
+  return counts;
+}
+
+export function countVisitsByDay(visits: PoolVisit[]): PoolDayCounts[] {
+  const counts = new Map<string, PoolDayCounts>();
+  for (const visit of visits) {
+    if (!visit.is_counted) continue;
+    const day = counts.get(visit.visited_on) ?? {
+      date: visit.visited_on, count: 0, MORNING: 0, EVENING: 0, TRIAL: 0, UNSPECIFIED: 0,
+    };
+    day.count += 1;
+    day[poolSessionType(visit)] += 1;
+    counts.set(visit.visited_on, day);
+  }
+  return [...counts.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export type DailyPoolAttendance = PoolVisit & {
-  athlete_id: string;
+  athlete_id?: string | null;
   is_selected: boolean;
 };
 
-export function selectedPoolAthletesForDay(visits: DailyPoolAttendance[], date: string) {
-  return [...new Set(visits
-    .filter(visit => visit.visited_on === date && (visit.is_selected || visit.is_counted))
-    .map(visit => visit.athlete_id))];
+export function selectedPoolAthletesForDay(visits: DailyPoolAttendance[], date: string, sessionType: PoolSessionType) {
+  const selected = visits.filter(visit =>
+    visit.athlete_id &&
+    visit.visited_on === date &&
+    poolSessionType(visit) === sessionType &&
+    (visit.is_selected || visit.is_counted)
+  );
+  return [...new Set(selected.map(visit => visit.athlete_id as string))];
 }
-
