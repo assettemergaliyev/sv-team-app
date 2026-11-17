@@ -189,40 +189,46 @@ export type Database = {
       }
       pool_attendance: {
         Row: {
-          athlete_id: string
+          athlete_id: string | null
           club_id: string
           created_at: string
           created_by: string | null
+          guest_name: string | null
           id: string
           is_counted: boolean
           is_selected: boolean
           revision: number
+          session_type: string
           updated_at: string
           updated_by: string | null
           visited_on: string
         }
         Insert: {
-          athlete_id: string
+          athlete_id?: string | null
           club_id: string
           created_at?: string
           created_by?: string | null
+          guest_name?: string | null
           id?: string
           is_counted?: boolean
           is_selected?: boolean
           revision?: number
+          session_type?: string
           updated_at?: string
           updated_by?: string | null
           visited_on: string
         }
         Update: {
-          athlete_id?: string
+          athlete_id?: string | null
           club_id?: string
           created_at?: string
           created_by?: string | null
+          guest_name?: string | null
           id?: string
           is_counted?: boolean
           is_selected?: boolean
           revision?: number
+          session_type?: string
           updated_at?: string
           updated_by?: string | null
           visited_on?: string
