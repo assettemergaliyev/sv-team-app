@@ -51,7 +51,7 @@ button{font:inherit;color:inherit;cursor:pointer}button:focus-visible,a:focus-vi
 .kpi::after{display:none}
 @media(max-width:760px){
   .sidebar{background:#fff;border-right:0;border-bottom:2px solid var(--navy);padding:10px 14px 0}
-  .brand{height:49px;width:155px;margin:0;padding:4px 0 6px;border-bottom:2px solid var(--navy)}
+  .brand{height:49px;width:155px;margin:0;padding:4px 0 6px;border-bottom:0}
   .brand img{max-height:42px}
 }
 </style>
@@ -148,7 +148,7 @@ renderSession("morning");
 document.querySelectorAll(".session-card[data-session]").forEach(b=>b.addEventListener("click",()=>renderSession(b.dataset.session)));
 let toastTimer;function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2400)}
 document.querySelectorAll("[data-notice]").forEach(b=>b.addEventListener("click",()=>toast(b.dataset.notice)));
-document.querySelectorAll(".nav-link,.mobile-nav").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".nav-link").forEach(x=>x.removeAttribute("aria-current"));document.querySelectorAll(".mobile-nav").forEach(x=>x.removeAttribute("aria-current"));b.setAttribute("aria-current","page");document.getElementById("crumb-current").textContent=b.dataset.title;toast("Концепт показывает главную тренера; раздел «"+b.dataset.title+"» откроется в полном интерфейсе")} ));
+document.querySelectorAll(".nav-link,.mobile-nav").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.title==="Посещаемость"){window.location.href="/design-preview/attendance.html";return}document.querySelectorAll(".nav-link").forEach(x=>x.removeAttribute("aria-current"));document.querySelectorAll(".mobile-nav").forEach(x=>x.removeAttribute("aria-current"));b.setAttribute("aria-current","page");document.getElementById("crumb-current").textContent=b.dataset.title;toast("Экран «"+b.dataset.title+"» — следующий шаг прототипа")} ));
 document.getElementById("primary-action").addEventListener("click",()=>{document.getElementById("attendance-panel").scrollIntoView({behavior:"smooth",block:"start"});toast("Выберите тренировочную группу и отметьте фактические посещения")});
 document.getElementById("mobile-action").addEventListener("click",()=>document.getElementById("primary-action").click());
 </script>
