@@ -30,6 +30,30 @@ button{font:inherit;color:inherit;cursor:pointer}button:focus-visible,a:focus-vi
 @media(max-width:1080px){.shell{grid-template-columns:215px minmax(0,1fr)}.sidebar{padding-left:12px;padding-right:12px}.main{padding:0 22px 40px}.grid{grid-template-columns:minmax(0,1.1fr) minmax(290px,.9fr)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.shell{display:block;padding-bottom:68px}.sidebar{position:static;height:auto;padding:10px 14px;background:var(--navy)}.brand{justify-content:flex-start;height:49px;width:155px;margin:0;padding:4px 7px;border-radius:9px}.brand img{max-height:42px}.club-picker,.nav-title,.nav,.sidebar-spacer,.side-note,.profile{display:none}.main{padding:0 15px 28px}.topbar{height:58px}.crumb{display:none}.top-actions{margin-left:auto}.top-profile strong,.top-profile small{display:none}.top-profile{padding:0}.welcome{align-items:flex-start;flex-direction:column;padding:21px 0 16px}.welcome h1{font-size:23px}.welcome p{max-width:340px}.welcome .primary{width:100%}.kpis{gap:9px;margin-bottom:13px}.kpi{min-height:103px;padding:12px}.kpi-head{font-size:10px}.kpi-icon{width:27px;height:27px}.kpi-value{font-size:23px}.kpi-foot{font-size:10px}.grid{grid-template-columns:1fr;gap:12px}.stack{gap:12px}.panel{padding:15px 14px}.panel-head{align-items:flex-start}.panel-title{font-size:14px}.session-summary{gap:6px}.session-card{padding:9px 8px}.session-card strong{font-size:17px}.session-card span{font-size:9px}.date-control{gap:0}.date-control span{font-size:10px;padding:0 2px}.date-control button{width:23px;height:24px}.chart{height:145px;gap:7px;padding-left:0;padding-right:0}.bar{width:min(14px,38%)}.mobile-bottom{position:fixed;z-index:15;right:0;bottom:0;left:0;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:7px 6px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#fffffff2;backdrop-filter:blur(12px)}.mobile-bottom button{display:grid;justify-items:center;gap:3px;min-height:44px;padding:4px 2px;border:0;border-radius:8px;background:transparent;color:#71858c;font-size:9px}.mobile-bottom button svg{width:18px;height:18px;stroke:currentColor}.mobile-bottom button[aria-current="page"]{color:var(--teal);font-weight:700}.mobile-bottom .fab{position:relative;top:-18px;width:48px;height:48px;justify-self:center;align-self:center;border:4px solid var(--bg);border-radius:50%;background:var(--teal);color:white;box-shadow:0 4px 12px #087e9340}.mobile-bottom .fab svg{width:21px;height:21px}.toast{right:12px;bottom:80px;left:12px;max-width:none}}
 @media(max-width:380px){.main{padding-right:11px;padding-left:11px}.kpi{padding:10px}.kpi-value{font-size:21px}.kpi-head{gap:5px}.session-summary{gap:5px}.session-card{padding:8px 6px}.status{font-size:9px;padding:3px 6px}}
+
+/* Light brand treatment: the supplied logo sits directly on the app surface. */
+.demo-banner{background:#f0f6f7;color:var(--ink);border-bottom:1px solid var(--line)}
+.demo-banner strong{color:var(--teal)}
+.sidebar{background:#fff;color:var(--ink);border-right:1px solid var(--line)}
+.brand{background:transparent;border-radius:0;border-bottom:2px solid var(--navy);padding:8px 10px 13px}
+.club-picker{border-color:var(--line);background:#fff;color:var(--ink)}
+.club-picker small,.caret{color:var(--muted)}
+.nav-title{color:#789099}
+.nav-link{color:#526c74}
+.nav-link:hover{background:#f1f7f8;color:var(--navy)}
+.nav-link[aria-current="page"]{background:#edf6f7;color:var(--navy);box-shadow:inset 3px 0 0 var(--gold)}
+.side-note{border-color:var(--line);background:#f2f7f8}
+.side-note b{color:var(--ink)}
+.side-note span{color:var(--muted)}
+.profile{border-top-color:var(--line)}
+.profile b{color:var(--ink)}
+.profile small{color:var(--muted)}
+.kpi::after{display:none}
+@media(max-width:760px){
+  .sidebar{background:#fff;border-right:0;border-bottom:2px solid var(--navy);padding:10px 14px 0}
+  .brand{height:49px;width:155px;margin:0;padding:4px 0 6px;border-bottom:2px solid var(--navy)}
+  .brand img{max-height:42px}
+}
 </style>
 </head>
 <body>
