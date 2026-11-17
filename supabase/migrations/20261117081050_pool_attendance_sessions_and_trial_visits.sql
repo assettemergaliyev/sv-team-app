@@ -1,6 +1,7 @@
 -- Split each pool attendance record by visit session and allow named trial guests without club profiles.
 -- Existing visits remain UNSPECIFIED because their original time of day is unknown.
 alter table public.pool_attendance
+  alter column athlete_id drop not null,
   add column session_type text not null default 'UNSPECIFIED',
   add column guest_name text;
 
