@@ -153,3 +153,10 @@ body{background:var(--page-bg)}
   .athlete-history-table th:last-child,.athlete-history-table td:last-child{width:26%}
   .rating-table td:nth-child(2){overflow-wrap:anywhere}
 }
+
+.attendance-session-tabs{margin:12px 0 4px;border:0}.attendance-session-tabs button{min-height:40px;font-size:14px}
+.attendance-session-totals{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0;color:var(--muted);font-size:14px}
+.attendance-session-totals strong{color:var(--green);font-variant-numeric:tabular-nums}
+.attendance-month .table-scroll{overflow-x:auto}
+.attendance-month table{min-width:620px}
+.attendance-month th:first-child{width:16%}.attendance-month th:last-child{width:18%}
