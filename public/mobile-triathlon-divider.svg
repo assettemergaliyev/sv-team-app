@@ -7,11 +7,13 @@
     <circle cx="153" cy="31" r="7" fill="#0b4650" stroke="none"/>
     <circle cx="314" cy="46" r="26"/>
     <circle cx="404" cy="46" r="26"/>
-    <path d="M314 46L345 34L364 68L404 46L382 34L345 34"/>
+    <path d="M314 46L345 34L364 68L404 46L382 34L345 34Z"/>
     <path d="M345 34L341 28M337 28H350M382 34L389 27H397"/>
-    <circle cx="355" cy="12" r="7" fill="#0b4650" stroke="none"/>
-    <path d="M349 22C339 23 336 29 342 34L356 40L371 32L382 34"/>
-    <path d="M356 40L343 53L314 46M356 40L367 51L364 68"/>
+  </g>
+  <circle cx="355" cy="12" r="7" fill="#0b4650"/>
+  <path d="M349 19C339 18 334 23 331 30L346 36L359 27L377 28L384 33L389 29L378 22L359 22Z" fill="#0b4650"/>
+  <g stroke="#0b4650" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M349 35L338 47L314 46M351 35L367 50L364 68"/>
     <circle cx="614" cy="10" r="7" fill="#0b4650" stroke="none"/>
     <path d="M607 20L590 38L574 48"/>
     <path d="M600 27L623 31L639 20"/>
